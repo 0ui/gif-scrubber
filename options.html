@@ -1,0 +1,34 @@
+<html>
+<head>
+  <title>GIF Scrubber Options</title>
+  <link rel="stylesheet" href="css/scrubber.css">
+  <link rel="stylesheet" href="css/font-awesome.min.css">
+</head>
+
+<body class="options">
+  <h3><i class="fa fa-gear"></i> Options</h3>
+  <ul>
+    <li><input type="checkbox" id="open-tabs"> <label for="open-tabs">Open scrubber in new tab instead of new window</label></li>
+    <li><input type="checkbox" id="auto-open"> <label for="auto-open">Automatically open scrubber when opening GIFs</label></li>
+    <li><input type="checkbox" id="auto-play"> <label for="auto-play">Start playing as soon as image loads</label></li>
+    <li><input type="checkbox" id="loop-anim"> <label for="loop-anim">Loop animation</label></li>
+  </ul>
+  
+  <button id="save-button">Save</button>
+
+  <p id="status">-</p>
+
+  <div class="shortcuts">
+    <h3><i class="fa fa-2x fa-keyboard-o"></i> Keyboard Shortcuts</h3>
+    <table>
+      <tr><td>Pause/play GIF in player view</td><td>Space Bar</td></tr>
+      <tr><td>Go back on frame in player view</td><td>Left Arrow</td></tr>
+      <tr><td>Go forward on frame in player view</td><td>Right Arrow</td></tr>
+      <tr><td>Toggle explode view of frames</td><td>E, Esc, Backspace</td></tr>
+      <tr><td>Open options (this page)</td><td>O</td></tr>
+    </table>
+  </div>
+  <script src="js/lib/jquery.min.js"></script>
+  <script src="js/options.js"></script>
+</body>
+</html>
