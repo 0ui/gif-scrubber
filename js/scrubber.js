@@ -125,8 +125,6 @@ window.addEventListener('load', () => {
     console.timeEnd('download');
     console.time('parse');
     const bytes = new Uint8Array(buffer);
-
-    // Check header
     let headerString = bytes.subarray(0, 3).string();
     if (headerString !== 'GIF') return showError('Error: Not a GIF image.');
 
@@ -206,7 +204,7 @@ window.addEventListener('load', () => {
     dom.spacer.css({'margin-top': '-40px'});
     $('body').removeClass('flex');
     showFrame(state.currentFrame);
-    localBool('auto-play') ? playGIF() : pauseGIF();
+    localBool('auto-play') ? togglePlaying(true) : togglePlaying(false);
 
     $('#url').val(imgURL)
       .on('mousedown mouseup mousmove', e => e.stopPropagation())
@@ -235,14 +233,14 @@ window.addEventListener('load', () => {
           toggleExplodeView();
           break;
         case 32: // Space
-          state.playing ? pauseGIF() : playGIF();
+          togglePlaying(state.playing);
           break;
         case 37: // Left Arrow
-          pauseGIF();
+          togglePlaying(false);
           showFrame(--state.currentFrame);
           break;
         case 39: // Right Arrow
-          pauseGIF();
+          togglePlaying(false);
           showFrame(++state.currentFrame);
           break;
         case 79: // O
@@ -392,7 +390,7 @@ window.addEventListener('load', () => {
     dom.filler.css('left', ((frameNumber / lastFrame) * state.barWidth) - 4);
     if (frame.isRendered) return context.display.drawImage(frame.drawable, 0, 0);
 
-    // Rendering not complete. Draw all frames since latest keyFrame as well
+    // Rendering not complete. Draw all frames since latest key frame as well
     const first = Math.max(0, frameNumber - (frameNumber % state.keyFrameRate));
     for (let i = first; i <= frameNumber; i++) {
       context.display.drawImage(state.frames[i].drawable, 0, 0);
@@ -417,7 +415,7 @@ window.addEventListener('load', () => {
   }
 
   function toggleExplodeView() {
-    pauseGIF();
+    togglePlaying(false);
     dom.explodedFrames.add(dom.spacer).add(dom.speedList).toggle();
   }
 
@@ -435,7 +433,7 @@ window.addEventListener('load', () => {
 
   function handleDrop(e) {
     e.preventDefault();
-    pauseGIF();
+    togglePlaying(false);
     let reader = new FileReader();
     reader.onload = e => handleGIF(e.target.result);
     reader.readAsArrayBuffer(e.dataTransfer.files[0]);
@@ -454,7 +452,7 @@ window.addEventListener('load', () => {
   // ===============
 
   function updateScrub(mouseX) {
-    pauseGIF();
+    togglePlaying(false);
     mouseX = Math.min(Math.max(mouseX, 0), state.barWidth - 1);
     frame = parseInt((mouseX/state.barWidth) / (1/state.frames.length), 10);
     if (frame !== state.currentFrame) showFrame(frame);
@@ -475,24 +473,20 @@ window.addEventListener('load', () => {
     showFrame(frameNumber);
   }
 
-  function playGIF() {
-    if (state.playing) return false;
-    dom.pausePlayIcon.addClass('fa-pause');
-    state.playing = true;
-    state.playTimeoutId = setTimeout(advanceFrame, state.frameDelay());
-  }
-
-  function pauseGIF() {
-    if (!state.playing) return false;
-    dom.pausePlayIcon.removeClass('fa-pause');
-    state.playing = false;
-    clearTimeout(state.playTimeoutId);
+  function togglePlaying(playing) {
+    if (state.playing === playing) return;
+    dom.pausePlayIcon.toggleClass('fa-pause', playing);
+    if (state.playing = playing) {
+      state.playTimeoutId = setTimeout(advanceFrame, state.frameDelay());
+    } else {
+      clearTimeout(state.playTimeoutId);
+    }
   }
 
   dom.speeds.on('click', function() {
-    if (this.id === 'play-pause') return state.playing ? pauseGIF() : playGIF();
+    if (this.id === 'play-pause') return togglePlaying(state.playing);
     state.speed = Number(this.innerText);
-    playGIF();
+    togglePlaying(true);
     dom.speeds.removeClass('selected');
     $(this).addClass('selected');
   });
