@@ -265,7 +265,6 @@ window.addEventListener('load', () => {
     const bytes = new Uint8Array(buffer);
     const trailer = new Uint8Array([0x3B]);
     let gce, packed;
-    let frameCount = 0;
     let frames = [];
 
     // Rendering 87a GIFs didn't work right for some reason. 
@@ -303,9 +302,9 @@ window.addEventListener('load', () => {
           let frame = {
             disposalMethod: gce.disposalMethod,
             delayTime: gce.delayTime < 2 ? 100 : gce.delayTime * 10,
-            isKeyFrame: frameCount % keyFrameRate === 0 && !!frameCount,
+            isKeyFrame: frames.length % keyFrameRate === 0 && !!frames.length,
             isRendered: false,
-            number: frameCount++,
+            number: frames.length + 1,
             transparent: gce.transparent,
             pos: { x, y },
             size: { w, h },
