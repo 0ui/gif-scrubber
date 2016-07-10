@@ -153,7 +153,7 @@ window.addEventListener('load', () => {
     let pos = 13 + colorTableSize(bytes[10]);
     const gct = bytes.subarray(13, pos);
 
-    parseFrames(buffer, pos, gct)
+    state.frames = parseFrames(buffer, pos, gct, state.keyFrameRate);
 
     return renderKeyFrames()
       .then(showControls)
@@ -260,12 +260,13 @@ window.addEventListener('load', () => {
     return 3 * Math.pow(2, size + 1);
   }
 
-  function parseFrames(buffer, pos, gct) {
+  function parseFrames(buffer, pos, gct, keyFrameRate) {
 
     const bytes = new Uint8Array(buffer);
     const trailer = new Uint8Array([0x3B]);
     let gce, packed;
     let frameCount = 0;
+    let frames = [];
 
     // Rendering 87a GIFs didn't work right for some reason. 
     // Forcing the 89a header made them work.
@@ -302,7 +303,7 @@ window.addEventListener('load', () => {
           let frame = {
             disposalMethod: gce.disposalMethod,
             delayTime: gce.delayTime < 2 ? 100 : gce.delayTime * 10,
-            isKeyFrame: frameCount % state.keyFrameRate === 0 && !!frameCount,
+            isKeyFrame: frameCount % keyFrameRate === 0 && !!frameCount,
             isRendered: false,
             number: frameCount++,
             transparent: gce.transparent,
@@ -330,11 +331,11 @@ window.addEventListener('load', () => {
 
           const data = header.concat(gct).concat(imageBlocks).concat(trailer);
           frame.blob = new Blob([data], {type: 'image/gif'});
-          state.frames.push(frame);
+          frames.push(frame);
           break;
         }
         case 0x3B: // End of file
-          return;
+          return frames;
         default:
           return showError('Error: Could not decode GIF');
       }
