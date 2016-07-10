@@ -233,7 +233,7 @@ window.addEventListener('load', () => {
           toggleExplodeView();
           break;
         case 32: // Space
-          togglePlaying(state.playing);
+          togglePlaying(!state.playing);
           break;
         case 37: // Left Arrow
           togglePlaying(false);
@@ -484,7 +484,7 @@ window.addEventListener('load', () => {
   }
 
   dom.speeds.on('click', function() {
-    if (this.id === 'play-pause') return togglePlaying(state.playing);
+    if (this.id === 'play-pause') return togglePlaying(!state.playing);
     state.speed = Number(this.innerText);
     togglePlaying(true);
     dom.speeds.removeClass('selected');
