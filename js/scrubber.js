@@ -397,7 +397,7 @@ window.addEventListener('load', () => {
     dom.zipIcon.toggleClass('fa-download fa-spinner fa-spin');
     downloadReady.then(() => {
       state.frames.map((frame) => {
-        state.zipGen.file(`Frame ${frame.number + 1}.jpg`, frame.blob);
+        state.zipGen.file(`Frame ${frame.number}.jpg`, frame.blob);
       });
       state.zipGen.generateAsync({type: 'blob'}).then((blob) => {
         saveAs(blob, 'gif-scrubber.zip');
