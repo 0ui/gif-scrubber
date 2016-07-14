@@ -121,13 +121,11 @@ window.addEventListener('load', () => {
   }
 
   function handleGIF(buffer) {
-
     console.timeEnd('download');
     console.time('parse');
     const bytes = new Uint8Array(buffer);
     let headerString = bytes.subarray(0, 3).string();
     if (headerString !== 'GIF') return showError('Error: Not a GIF image.');
-
     init();
 
     // Image dimensions
@@ -229,12 +227,8 @@ window.addEventListener('load', () => {
       switch (e.keyCode) {
         case 8: // Backspace
         case 27: // Escape
-        case 69: // E
-          toggleExplodeView();
-          break;
-        case 32: // Space
-          togglePlaying(!state.playing);
-          break;
+        case 69: return toggleExplodeView(); // E
+        case 32: return togglePlaying(!state.playing); // Space
         case 37: // Left Arrow
           togglePlaying(false);
           showFrame(--state.currentFrame);
@@ -243,9 +237,7 @@ window.addEventListener('load', () => {
           togglePlaying(false);
           showFrame(++state.currentFrame);
           break;
-        case 79: // O
-          options();
-          break;
+        case 79: return options(); // O
       }
     };
   }
@@ -261,7 +253,6 @@ window.addEventListener('load', () => {
   }
 
   function parseFrames(buffer, pos, gct, keyFrameRate) {
-
     const bytes = new Uint8Array(buffer);
     const trailer = new Uint8Array([0x3B]);
     let gce, packed;
@@ -358,6 +349,7 @@ window.addEventListener('load', () => {
         resolve(frame);
       };
       img.src = blobURL;
+      frame.blob = blob;
       frame.drawable = img;
     });
   }
