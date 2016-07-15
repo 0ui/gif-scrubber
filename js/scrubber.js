@@ -3,6 +3,10 @@ window.addEventListener('load', () => {
   const manifest = chrome.runtime.getManifest();
   document.title = `${manifest.name} ${manifest.version}`;
 
+  function clamp(num, min, max) {
+    return Math.min(Math.max(num, min), max);
+  }
+
   function preference(item) { 
     return localStorage[item] === 'true';
   }
@@ -10,7 +14,6 @@ window.addEventListener('load', () => {
   // Progress Bars
   // =============
 
-  const circleBar = ProgressBar.Circle;
   const barSettings = {
     color: '#fff',
     strokeWidth: 20,
@@ -27,8 +30,10 @@ window.addEventListener('load', () => {
       circle.setText(value === 0 ? '' : `${value}%`);
     }
   };
-  const downloadBar = new circleBar($('#download-progress-bar')[0], barSettings);
-  const renderBar = new circleBar($('#render-progress-bar')[0], barSettings);
+  const downloadEl = $('#download-progress-bar').get(0);
+  const renderEl = $('#render-progress-bar').get(0);
+  const downloadBar = new ProgressBar.Circle(downloadEl, barSettings);
+  const renderBar = new ProgressBar.Circle(renderEl, barSettings);
 
   // DOM Cache
   // =========
@@ -57,7 +62,7 @@ window.addEventListener('load', () => {
   };
 
   // Combine jQuery selections
-  function $add (...el) { return [...el].reduce((x, y) => x.add(y), $()) }
+  const $add = (...el) => el.reduce((x, y) => x.add(y), $());
 
   dom.explodeView = $add(dom.explodedFrames, dom.spacer, dom.speedList)
   dom.explodeViewToggles = $('#bomb, #exploded-frames .close');
@@ -150,7 +155,7 @@ window.addEventListener('load', () => {
       chrome.windows.getCurrent((win) => {
         chrome.windows.update(win.id, {
           width: Math.max(state.width + 180, 640),
-          height: Math.min(Math.max(state.height + 300, 410), 850),
+          height: clamp(state.height + 300, 410, 850),
         });
       });
     }
@@ -272,7 +277,7 @@ window.addEventListener('load', () => {
       switch (bytes[pos]) { 
         case 0x21:
           switch (bytes[pos+1]) {
-            case 0xF9: // 'Graphics control extension...'
+            case 0xF9: // Graphics control extension...
               packed = bytes[pos+3];
               gce = {
                 pos: pos,
@@ -299,8 +304,8 @@ window.addEventListener('load', () => {
             isRendered: false,
             number: frames.length + 1,
             transparent: gce.transparent,
-            pos: { x, y },
-            size: { w, h },
+            pos: {x, y},
+            size: {w, h},
           };
 
           // Skip local color table
@@ -309,9 +314,7 @@ window.addEventListener('load', () => {
 
           // Skip data blocks
           while (bytes[pos] !== 0x00) pos += bytes[pos] + 1;
-          pos++;
-
-          let imageBlocks = bytes.subarray(imageStart, pos);
+          let imageBlocks = bytes.subarray(imageStart, ++pos);
 
           // Use a Graphics Control Extension
           if (typeof gce.pos !== 'undefined') {
@@ -444,7 +447,7 @@ window.addEventListener('load', () => {
 
   function updateScrub(mouseX) {
     togglePlaying(false);
-    mouseX = Math.min(Math.max(mouseX, 0), state.barWidth - 1);
+    mouseX = clamp(mouseX, 0, state.barWidth - 1);
     frame = parseInt((mouseX/state.barWidth) / (1/state.frames.length), 10);
     if (frame !== state.currentFrame) showFrame(frame);
   }
