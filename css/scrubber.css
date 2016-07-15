@@ -25,13 +25,6 @@ a:hover {
   background-color: #383838;
 }
 
-body.flex {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-}
-
 .blur {
   -webkit-filter: blur(50px);
 }
@@ -99,7 +92,9 @@ body.flex {
 }
 
 
-/*#canvas-render { display: none; }*/
+#canvas-render { 
+  display: none; 
+}
 
 #content {
   margin: auto;
@@ -108,6 +103,7 @@ body.flex {
 }
 
 #bubble-spacer {
+  display: none;
   position: relative;
   margin: 0 auto;
   text-align: center;
@@ -243,7 +239,7 @@ body.flex {
   left: 0;
   right: 0;
   bottom: 0;
-  display: flex;
+  display: none;
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
@@ -366,4 +362,34 @@ body.options {
 .options .shortcuts tr td:last-child {
   font-weight: bold;
   padding-right: 20px;
+}
+
+#speed-list.displayed {
+  display: table;
+}
+
+#scrubber-bar.displayed,
+#bubble-spacer.displayed {
+  display: block;
+}
+body.displayed,
+#messages.displayed,
+#toolbar.displayed,
+#exploded-frames.displayed {
+  display: flex;
+}
+#canvas-render.displayed,
+#canvas-display.displayed {
+  display: inline-block;
+}
+
+body.displayed {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+#bubble-spacer.displayed {
+  margin-top: -40px;
 }

@@ -1,9 +1,9 @@
 window.addEventListener('load', () => {
 
-  let manifest = chrome.runtime.getManifest();
+  const manifest = chrome.runtime.getManifest();
   document.title = `${manifest.name} ${manifest.version}`;
 
-  function localBool(item) { 
+  function preference(item) { 
     return localStorage[item] === 'true';
   }
 
@@ -11,7 +11,7 @@ window.addEventListener('load', () => {
   // =============
 
   const circleBar = ProgressBar.Circle;
-  let barSettings = {
+  const barSettings = {
     color: '#fff',
     strokeWidth: 20,
     trailWidth: 1,
@@ -23,22 +23,17 @@ window.addEventListener('load', () => {
     step (state, circle) {
       circle.path.setAttribute('stroke', state.color);
       circle.path.setAttribute('stroke-width', state.width);
-      let value = Math.round(circle.value() * 100);
+      const value = Math.round(circle.value() * 100);
       circle.setText(value === 0 ? '' : `${value}%`);
     }
   };
-
-  let downloadBar = new circleBar($('#download-progress-bar')[0], barSettings);
-  let renderBar = new circleBar($('#render-progress-bar')[0], barSettings);
+  const downloadBar = new circleBar($('#download-progress-bar')[0], barSettings);
+  const renderBar = new circleBar($('#render-progress-bar')[0], barSettings);
 
   // DOM Cache
   // =========
 
-  let dom = {
-    canvas: {
-      display: $('#canvas-display').get(0),
-      render: $('#canvas-render').get(0),
-    },
+  const dom = {
     errorMessage: $('#error-message'),
     explodedFrames: $('#exploded-frames'),
     filler: $('#scrubber-bar-filler'),
@@ -51,10 +46,23 @@ window.addEventListener('load', () => {
     zipIcon: $('#zip .fa'),
   };
 
-  let context = {
-    display: dom.canvas.display.getContext('2d'),
-    render: dom.canvas.render.getContext('2d'),
+  const canvas = {
+    display: $('#canvas-display').get(0),
+    render: $('#canvas-render').get(0),
   };
+
+  const context = {
+    display: canvas.display.getContext('2d'),
+    render: canvas.render.getContext('2d'),
+  };
+
+  // Combine jQuery selections
+  function $add (...el) { return [...el].reduce((x, y) => x.add(y), $()) }
+
+  dom.explodeView = $add(dom.explodedFrames, dom.spacer, dom.speedList)
+  dom.explodeViewToggles = $('#bomb, #exploded-frames .close');
+  dom.playerControls = $add(dom.bar, dom.speedList, canvas.display, dom.spacer, '#toolbar');
+  dom.renderElements = $add(canvas.render, '#messages', 'body');
 
   // Download GIF
   // ============
@@ -79,7 +87,7 @@ window.addEventListener('load', () => {
     imgURL = `https://giant.gfycat.com/${code}.gif`;
   }
 
-  let h = new XMLHttpRequest();
+  const h = new XMLHttpRequest();
   h.responseType = 'arraybuffer';
   h.onload = request => downloadReady = handleGIF(request.target.response);
   h.onprogress = e => e.lengthComputable && downloadBar.set(e.loaded / e.total);
@@ -124,21 +132,21 @@ window.addEventListener('load', () => {
     console.timeEnd('download');
     console.time('parse');
     const bytes = new Uint8Array(buffer);
-    let headerString = bytes.subarray(0, 3).string();
+    const headerString = bytes.subarray(0, 3).string();
     if (headerString !== 'GIF') return showError('Error: Not a GIF image.');
     init();
 
     // Image dimensions
     const dimensions = new Uint16Array(buffer, 6, 2);
     [state.width, state.height] = dimensions;
-    dom.canvas.render.width = dom.canvas.display.width = state.width;
-    dom.canvas.render.height = dom.canvas.display.height = state.height;
+    canvas.render.width = canvas.display.width = state.width;
+    canvas.render.height = canvas.display.height = state.height;
     dom.bar[0].style.width = dom.line[0].style.width = 
       state.barWidth = Math.max(state.width, 450);
     $('#content').css({ width: state.barWidth, height: state.height });
 
     // Adjust window size
-    if (!localBool('open-tabs')) {
+    if (!preference('open-tabs')) {
       chrome.windows.getCurrent((win) => {
         chrome.windows.update(win.id, {
           width: Math.max(state.width + 180, 640),
@@ -193,23 +201,17 @@ window.addEventListener('load', () => {
 
   function showControls() {
     console.timeEnd('render-keyframes');
-    dom.bar.show();
-    dom.speedList.show();
-    $('#messages').hide();
-    $(dom.canvas.render).hide();
-    $('#toolbar').css({display: 'flex'});
-    $(dom.canvas.display).css('display','inline-block');
-    dom.spacer.css({'margin-top': '-40px'});
-    $('body').removeClass('flex');
+    dom.playerControls.addClass('displayed');
+    dom.renderElements.removeClass('displayed');
     showFrame(state.currentFrame);
-    localBool('auto-play') ? togglePlaying(true) : togglePlaying(false);
+    togglePlaying(preference('auto-play'));
 
     $('#url').val(imgURL)
       .on('mousedown mouseup mousmove', e => e.stopPropagation())
       .on('keydown', (e) => {
         e.stopPropagation();
         if (e.keyCode === 13) {
-          let url = encodeURIComponent($('#url').val());
+          const url = encodeURIComponent($('#url').val());
           location.href = location.href.replace(location.hash,'') + '#' + url;
           location.reload();
         }
@@ -255,14 +257,14 @@ window.addEventListener('load', () => {
   function parseFrames(buffer, pos, gct, keyFrameRate) {
     const bytes = new Uint8Array(buffer);
     const trailer = new Uint8Array([0x3B]);
+    const frames = [];
     let gce, packed;
-    let frames = [];
 
     // Rendering 87a GIFs didn't work right for some reason. 
     // Forcing the 89a header made them work.
     const headerBytes = 'GIF89a'.split('').map(x => x.charCodeAt(0), []);
     const nextBytes = bytes.subarray(6, 13);
-    let header = new Uint8Array(13);
+    const header = new Uint8Array(13);
     header.set(headerBytes);
     header.set(nextBytes, 6);
 
@@ -290,7 +292,7 @@ window.addEventListener('load', () => {
           break;
         case 0x2C: { // `New image frame at ${pos}`
           const [x, y, w, h] = new Uint16Array(buffer.slice(pos + 1, pos + 9));
-          let frame = {
+          const frame = {
             disposalMethod: gce.disposalMethod,
             delayTime: gce.delayTime < 2 ? 100 : gce.delayTime * 10,
             isKeyFrame: frames.length % keyFrameRate === 0 && !!frames.length,
@@ -341,8 +343,8 @@ window.addEventListener('load', () => {
 
   function blobToImg(blob, frame) {
     return new Promise((resolve) => {
-      let blobURL = URL.createObjectURL(blob, {oneTimeOnly: true});
-      let img = document.createElement('img');
+      const blobURL = URL.createObjectURL(blob, {oneTimeOnly: true});
+      const img = document.createElement('img');
       img.onload = () => {
         renderBar.set(frame.number / state.frames.length);
         frame.isRendered = true;
@@ -368,7 +370,7 @@ window.addEventListener('load', () => {
 
     // Save keyFrames to <img> elements
     if ((frame.isKeyFrame || forceKeyFrame) && !frame.isRendered) {
-      return canvasToBlob(dom.canvas.render).then((blob) => {
+      return canvasToBlob(canvas.render).then((blob) => {
         return blobToImg(blob, frame);
       });
     }
@@ -408,7 +410,7 @@ window.addEventListener('load', () => {
 
   function toggleExplodeView() {
     togglePlaying(false);
-    dom.explodedFrames.add(dom.spacer).add(dom.speedList).toggle();
+    dom.explodeView.toggleClass('displayed');
   }
 
   function options() {
@@ -416,29 +418,26 @@ window.addEventListener('load', () => {
   }
 
   $('a').click(e => e.preventDefault());
-  $('#bomb, #exploded-frames .close').on('click', toggleExplodeView);
   $('#gear').on('click', options);
   $('#zip').on('click', downloadZip);
+  dom.explodeViewToggles.on('click', toggleExplodeView);
 
   // Drag and drop
   // =============
 
-  function handleDrop(e) {
-    e.preventDefault();
-    togglePlaying(false);
-    let reader = new FileReader();
-    reader.onload = e => handleGIF(e.target.result);
-    reader.readAsArrayBuffer(e.dataTransfer.files[0]);
-  }
-
-  function handleDragOver(evt) {
-    evt.stopPropagation();
-    evt.preventDefault();
-    evt.dataTransfer.dropEffect = 'copy';
-  }
-
-  document.body.addEventListener('dragover', handleDragOver, false);
-  document.body.addEventListener('drop', handleDrop, false);
+  $('body')
+    .on('dragover', (evt) => {
+      evt.stopPropagation();
+      evt.preventDefault();
+      evt.dataTransfer.dropEffect = 'copy';
+    })
+    .on('drop', (evt) => {
+      evt.preventDefault();
+      togglePlaying(false);
+      const reader = new FileReader();
+      reader.onload = e => handleGIF(e.target.result);
+      reader.readAsArrayBuffer(e.dataTransfer.files[0]);
+    });
 
   // Player controls
   // ===============
@@ -457,7 +456,7 @@ window.addEventListener('load', () => {
     const lastFrame = state.frames.length - 1;
 
     if (loopBackward || loopForward) {
-      if (localBool('loop-anim')) frameNumber = loopForward ? 0 : lastFrame;
+      if (preference('loop-anim')) frameNumber = loopForward ? 0 : lastFrame;
       else frameNumber = loopForward ? lastFrame : 0;
     }
 
@@ -489,7 +488,7 @@ window.addEventListener('load', () => {
 // =========
 
 Uint8Array.prototype.concat = function(newArr) {
-  let result = new Uint8Array(this.length + newArr.length);
+  const result = new Uint8Array(this.length + newArr.length);
   result.set(this);
   result.set(newArr, this.length);
   return result;

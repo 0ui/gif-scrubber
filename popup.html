@@ -5,9 +5,9 @@
   <link rel="stylesheet" href="css/font-awesome.min.css">
 </head>
 
-<body class="flex">
+<body class="displayed">
 
-  <div id="messages">
+  <div id="messages" class="displayed">
     <div>
       <h2 class="download">Download</h2>
       <div id="download-progress-bar" class="download"></div>
@@ -23,7 +23,7 @@
 
   <div id="content">
 
-    <div id="bubble-spacer">
+    <div id="bubble-spacer" class="displayed">
 
       <div id="toolbar">
         <a href="#" id="bomb"><i class="fa fa-bomb"></i> Explode</a>
@@ -34,7 +34,7 @@
 
       <div id="image-holder" class="cf">
         <canvas id="canvas-display"></canvas>
-        <canvas id="canvas-render" class="blur"></canvas>
+        <canvas id="canvas-render" class="displayed blur"></canvas>
       </div>
 
       <div id="scrubber-bar">
