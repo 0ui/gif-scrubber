@@ -1,5 +1,5 @@
 <meta property="og:image"
-    content="https://raw.githubusercontent.com/0ui/gif-scrubber/master/img/icon_128.png"/>
+    content="https://raw.githubusercontent.com/0ui/gif-scrubber/master/img/icon-128.png"/>
 
 # gif-scrubber
 
@@ -15,6 +15,8 @@ GIF Scrubber is a chrome extension that allows you to control gifs like a video 
 - Slow motion
 - "Explode" the gif to view individual frames
 - Download all the frames of a gif to one zip file
+- Edit the URL in the dotted box and hit enter to load a different GIF
+- Support for video links like Imgur (.gifv) and Gfycat
 
 # Installation
 
