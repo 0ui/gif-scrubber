@@ -30,10 +30,10 @@ window.addEventListener('load', () => {
       circle.setText(value === 0 ? '' : `${value}%`);
     }
   };
-  const downloadEl = $('#download-progress-bar').get(0);
-  const renderEl = $('#render-progress-bar').get(0);
-  const downloadBar = new ProgressBar.Circle(downloadEl, barSettings);
-  const renderBar = new ProgressBar.Circle(renderEl, barSettings);
+  const $downloadBar = $('#download-progress-bar');
+  const $renderBar = $('#render-progress-bar');
+  const downloadBar = new ProgressBar.Circle($downloadBar.get(0), barSettings);
+  const renderBar = new ProgressBar.Circle($renderBar.get(0), barSettings);
 
   // DOM Cache
   // =========
@@ -66,8 +66,8 @@ window.addEventListener('load', () => {
 
   dom.explodeView = $add(dom.explodedFrames, dom.spacer, dom.speedList)
   dom.explodeViewToggles = $('#bomb, #exploded-frames .close');
-  dom.playerControls = $add(dom.bar, dom.speedList, canvas.display, dom.spacer, '#toolbar');
-  dom.renderElements = $add(canvas.render, '#messages', 'body');
+  dom.player = $add(dom.bar, dom.speedList, canvas.display, dom.spacer, '#toolbar');
+  dom.loadingScreen = $add(canvas.render, '#messages', 'body');
 
   // Download GIF
   // ============
@@ -206,8 +206,8 @@ window.addEventListener('load', () => {
 
   function showControls() {
     console.timeEnd('render-keyframes');
-    dom.playerControls.addClass('displayed');
-    dom.renderElements.removeClass('displayed');
+    dom.player.addClass('displayed');
+    dom.loadingScreen.removeClass('displayed');
     showFrame(state.currentFrame);
     togglePlaying(preference('auto-play'));
 
@@ -287,9 +287,9 @@ window.addEventListener('load', () => {
               };
               pos += 8;
               break;
-            case 0xFE: pos -= 12; // Comment extension...
-            case 0xFF: pos -= 1; // Application extension...
-            case 0x01: pos += 15; // Plain Text extension...
+            case 0xFE: pos -= 12; // Comment extension fallthrough...
+            case 0xFF: pos -= 1; // Application extension fallthrough...
+            case 0x01: pos += 15; // Plain Text extension fallthrough...
             default: // Skip data sub-blocks
               while (bytes[pos] !== 0x00) pos += bytes[pos] + 1;
               pos++;
