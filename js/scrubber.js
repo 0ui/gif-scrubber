@@ -170,7 +170,7 @@ window.addEventListener('load', () => {
       .then(showControls)
       .then(renderIntermediateFrames)
       .then(explodeFrames)
-      .catch(err => console.log('Rendering GIF failed!', err));
+      .catch(err => console.error('Rendering GIF failed!', err));
   }
 
   const chainPromises = [(x, y) => x.then(y), Promise.resolve()];
@@ -374,10 +374,11 @@ window.addEventListener('load', () => {
   }
 
   function showFrame(frameNumber) {
-    console.log(frameNumber);
+
     // Draw current frame only if it's already rendered
-    const frame = state.frames[state.currentFrame = frameNumber];
     const lastFrame = state.frames.length - 1;
+    frameNumber = clamp(frameNumber, 0, lastFrame);
+    const frame = state.frames[state.currentFrame = frameNumber];
     dom.filler.css('left', ((frameNumber / lastFrame) * state.barWidth) - 4);
     if (frame.isRendered) return context.display.drawImage(frame.drawable, 0, 0);
 
