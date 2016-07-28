@@ -236,14 +236,8 @@ window.addEventListener('load', () => {
         case 27: // Escape
         case 69: return toggleExplodeView(); // E
         case 32: return togglePlaying(!state.playing); // Space
-        case 37: // Left Arrow
-          togglePlaying(false);
-          showFrame(--state.currentFrame);
-          break;
-        case 39: // Right Arrow
-          togglePlaying(false);
-          showFrame(++state.currentFrame);
-          break;
+        case 37: return advanceFrame(-1); // Left Arrow
+        case 39: return advanceFrame(1); // Right Arrow
         case 79: return options(); // O
       }
     };
@@ -380,14 +374,10 @@ window.addEventListener('load', () => {
   }
 
   function showFrame(frameNumber) {
-
-    // Loop playhead
-    const lastFrame = state.frames.length - 1;
-    if (frameNumber < 0) frameNumber = lastFrame;
-    if (frameNumber > lastFrame) frameNumber = 0;
-
+    console.log(frameNumber);
     // Draw current frame only if it's already rendered
     const frame = state.frames[state.currentFrame = frameNumber];
+    const lastFrame = state.frames.length - 1;
     dom.filler.css('left', ((frameNumber / lastFrame) * state.barWidth) - 4);
     if (frame.isRendered) return context.display.drawImage(frame.drawable, 0, 0);
 
@@ -456,18 +446,25 @@ window.addEventListener('load', () => {
     if (frame !== state.currentFrame) showFrame(frame);
   }
 
-  function advanceFrame() {
-    let frameNumber = state.currentFrame + (state.speed > 0 ? 1 : -1);
+  function advanceFrame(direction = 'auto') {
+    let frameNumber = state.currentFrame;
+    if (direction === 'auto') frameNumber += (state.speed > 0 ? 1 : -1);
+    else frameNumber += direction;
+
     const loopBackward = frameNumber < 0;
     const loopForward = frameNumber >= state.frames.length;
     const lastFrame = state.frames.length - 1;
 
     if (loopBackward || loopForward) {
       if (preference('loop-anim')) frameNumber = loopForward ? 0 : lastFrame;
-      else frameNumber = loopForward ? lastFrame : 0;
+      else return togglePlaying(false);
     }
 
-    state.playTimeoutId = setTimeout(advanceFrame, state.frameDelay());
+    if (direction === 'auto') {
+      state.playTimeoutId = setTimeout(advanceFrame, state.frameDelay());
+    } else {
+      togglePlaying(false);
+    }
     showFrame(frameNumber);
   }
 
