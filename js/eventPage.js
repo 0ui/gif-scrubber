@@ -4,7 +4,7 @@ if (typeof localStorage['auto-open'] === 'undefined') localStorage['auto-open'] 
 if (typeof localStorage['auto-play'] === 'undefined') localStorage['auto-play'] = 'true';
 if (typeof localStorage['loop-anim'] === 'undefined') localStorage['loop-anim'] = 'true';
 
-chrome.contextMenus.onClicked.addListener(function (info, tab) {
+function showContextMenu(info, tab) {
   if (info.menuItemId !== 'scrubber') return false;
   let link = encodeURIComponent(info.linkUrl);
   let src = encodeURIComponent(info.srcUrl);
@@ -22,12 +22,11 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
       'height': 430
     });
   }
-});
+}
 
-chrome.runtime.onInstalled.addListener(function() {
-  chrome.contextMenus.create({
-    'title': 'GIF Scrubber', 
-    'contexts': ['link','image','video'],
-    'id': 'scrubber',
-  });
+chrome.contextMenus.create({
+  'title': 'GIF Scrubber', 
+  'contexts': ['link','image','video'],
+  'id': 'scrubber',
+  'onclick': showContextMenu,
 });
