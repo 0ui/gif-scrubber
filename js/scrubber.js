@@ -381,9 +381,13 @@ window.addEventListener('load', () => {
 
   function showFrame(frameNumber) {
 
+    // Loop playhead
+    const lastFrame = state.frames.length - 1;
+    if (frameNumber < 0) frameNumber = lastFrame;
+    if (frameNumber > lastFrame) frameNumber = 0;
+
     // Draw current frame only if it's already rendered
     const frame = state.frames[state.currentFrame = frameNumber];
-    const lastFrame = state.frames.length - 1;
     dom.filler.css('left', ((frameNumber / lastFrame) * state.barWidth) - 4);
     if (frame.isRendered) return context.display.drawImage(frame.drawable, 0, 0);
 
