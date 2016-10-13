@@ -166,6 +166,16 @@ a:hover {
   width: 100%;
 }
 
+#image-holder.light {
+  background-color: white;
+}
+
+#image-holder.checker {
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAKElEQVQoU2PcsWPHfwY04O7uji7EwDgUFP7//x/DMzt37sT0zBBQCAC1ajK6x0OpYwAAAABJRU5ErkJggg==) repeat;
+  background-size: 20px 20px;
+  image-rendering: pixelated;
+}
+
 .scrub {
   position: absolute;
   top: 0;
@@ -318,7 +328,7 @@ body.options {
   list-style: none;
   text-align: left;
   font-size: 1.3em;
-  font-weight: 100;
+  font-weight: 200;
   margin-bottom: 10px;
 }
 
@@ -341,10 +351,14 @@ body.options {
   display: none;
 }
 
+.options .separator {
+  padding-top: 10px;
+}
+
 .options .shortcuts h3 {
   text-align: left;
   text-transform: uppercase;
-  font-weight: 100;
+  font-weight: 200;
   font-size: 1em;
   margin-top: 1em;
 }
@@ -362,6 +376,34 @@ body.options {
 .options .shortcuts tr td:last-child {
   font-weight: bold;
   padding-right: 20px;
+}
+
+.options #color-list label {
+  cursor: pointer;
+  font-size: 0.8em;
+}
+
+.options .input-radio .sample {
+  content: '';
+  display: inline-block;
+  width: 44px;
+  height: 20px;
+  border: 1px solid #333;
+  vertical-align: bottom;
+}
+
+.options label[data-color='light'] .sample {
+  background-color: #ffffff;
+}
+
+.options label[data-color='dark'] .sample {
+  background-color: #222222;
+}
+
+.options label[data-color='checker'] .sample {
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAKElEQVQoU2PcsWPHfwY04O7uji7EwDgUFP7//x/DMzt37sT0zBBQCAC1ajK6x0OpYwAAAABJRU5ErkJggg==) repeat;
+  background-size: 20px 20px;
+  image-rendering: pixelated;
 }
 
 #speed-list.displayed {
