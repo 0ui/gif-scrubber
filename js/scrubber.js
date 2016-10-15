@@ -42,6 +42,7 @@ window.addEventListener('load', () => {
     errorMessage: $('#error-message'),
     explodedFrames: $('#exploded-frames'),
     filler: $('#scrubber-bar-filler'),
+    holder: $('#image-holder'),
     pausePlayIcon: $('#play-pause-icon'),
     speedList: $('#speed-list'),
     speeds: $('#speed-list td'),
@@ -213,6 +214,7 @@ window.addEventListener('load', () => {
     dom.loadingScreen.removeClass('displayed');
     showFrame(state.currentFrame);
     togglePlaying(preference('auto-play'));
+    dom.holder.addClass(localStorage['background-color']);
 
     $('#url').val(imgURL)
       .on('mousedown mouseup mousmove', e => e.stopPropagation())
