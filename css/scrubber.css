@@ -166,12 +166,12 @@ a:hover {
   width: 100%;
 }
 
-#image-holder.light {
+#canvas-display.light {
   background-color: white;
 }
 
-#image-holder.checker {
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAKElEQVQoU2PcsWPHfwY04O7uji7EwDgUFP7//x/DMzt37sT0zBBQCAC1ajK6x0OpYwAAAABJRU5ErkJggg==) repeat;
+#canvas-display.checker {
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAKElEQVQoU2N8/fr1fwY0ICIigi7EwDgUFP7//x/DM2/evMH0zBBQCAAfHTW3vSJ0fQAAAABJRU5ErkJggg==) repeat;
   background-size: 20px 20px;
   image-rendering: pixelated;
 }
