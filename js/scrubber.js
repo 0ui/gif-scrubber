@@ -116,7 +116,10 @@ window.addEventListener('load', () => {
     state = {
       barWidth: null,
       currentFrame: 0,
-      debug: false,
+      debug: {
+        showRawFrames: false,
+      },
+      hasTransparency: false,
       keyFrameRate: 15, // Performance: Pre-render every n frames
       frame() { return this.frames[this.currentFrame] },
       frameDelay() { return this.frame().delayTime / Math.abs(this.speed) },
@@ -182,7 +185,7 @@ window.addEventListener('load', () => {
       .map(frame => () => {
         return createImageBitmap(frame.blob)
           .then(bitmap => { frame.drawable = bitmap; return frame })
-          .then(renderFrame);
+          .then(renderAndSave);
       })
       .reduce(...chainPromises);
   }
@@ -190,7 +193,7 @@ window.addEventListener('load', () => {
   function renderIntermediateFrames() {
     console.time('background-render');
     return state.frames
-      .map(frame => () => renderFrame(frame, true))
+      .map(frame => () => renderAndSave(frame, true))
       .reduce(...chainPromises);
   }
 
@@ -241,6 +244,8 @@ window.addEventListener('load', () => {
         case 79: return options(); // O
       }
     };
+
+    if (state.debug.showRawFrames) throw 'abort rendering frames';
   }
 
   // GIF parsing
@@ -278,6 +283,7 @@ window.addEventListener('load', () => {
                 disposalMethod: packed.bits(3, 3),
                 transparent: packed.bits(7, 1),
                 delayTime: bytes[pos+4],
+                tci: bytes[pos+6],
               };
               pos += 8;
               break;
@@ -301,6 +307,21 @@ window.addEventListener('load', () => {
             pos: {x, y},
             size: {w, h},
           };
+
+          // Try to detect transparency in first frame
+          if (frame.number === 1 && (
+              frame.disposalMethod > 1 ||
+              frame.pos.x > 0 || 
+              frame.pos.y > 0 || 
+              frame.size.w < state.width || 
+              frame.size.h < state.height)) {
+            state.hasTransparency = true;
+          }
+          
+          // Assume transparency if using method 2 since the background could show through
+          if (frame.disposalMethod === 2) {
+            state.hasTransparency = true;
+          }
 
           // Skip local color table
           const imageStart = pos;
@@ -335,7 +356,9 @@ window.addEventListener('load', () => {
   // =================
 
   function canvasToBlob(canvas) {
-    return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.90));
+    // jpeg has no transparency, webp is slow
+    const format = state.hasTransparency ? 'image/webp' : 'image/jpeg'; 
+    return new Promise(resolve => canvas.toBlob(resolve, format, 0.90));
   }
 
   function blobToImg(blob, frame) {
@@ -353,17 +376,8 @@ window.addEventListener('load', () => {
     });
   }
 
-  function renderFrame(frame, forceKeyFrame) {
-
-    // Disposal method 0 or 1: draw image only
-    // Disposal method 2: draw image then erase portion just drawn
-    // Disposal method 3: draw image then revert to previous frame
-    const [{x, y}, {w, h}, method] = [frame.pos, frame.size, frame.disposalMethod];
-    const full = [0, 0, state.width, state.height];
-    const backup = method === 3 ? context.render.getImageData(...full) : null;
-    context.render.drawImage(frame.drawable, ...full);
-    if (method === 2) context.render.clearRect(x, y, w, h);
-    if (method === 3) context.render.putImageData(backup, 0, 0);
+  function renderAndSave(frame, forceKeyFrame) {
+    renderFrame(frame, context.render)
 
     // Save keyFrames to <img> elements
     if ((frame.isKeyFrame || forceKeyFrame) && !frame.isRendered) {
@@ -373,19 +387,42 @@ window.addEventListener('load', () => {
     }
   }
 
-  function showFrame(frameNumber) {
+  function renderFrame(frame, ctx) {
+    const [{x, y}, {w, h}, method] = [frame.pos, frame.size, frame.disposalMethod];
+    const full = [0, 0, state.width, state.height];
+    const prevFrame = state.frames[frame.number - 2];
 
-    // Draw current frame only if it's already rendered
+    if (!prevFrame) {
+      ctx.clearRect(...full); // First frame, wipe the canvas clean
+    } else {
+      // Disposal method 0 or 1: draw image only
+      // Disposal method 2: draw image then erase portion just drawn
+      // Disposal method 3: draw image then revert to previous frame
+      const [{x, y}, {w, h}, method] = [prevFrame.pos, prevFrame.size, prevFrame.disposalMethod];
+      if (method === 2) ctx.clearRect(x, y, w, h); 
+      if (method === 3) ctx.putImageData(prevFrame.backup, 0, 0); 
+    }
+
+    frame.backup = method === 3 ? ctx.getImageData(...full) : null;
+    ctx.drawImage(frame.drawable, ...full);
+  }
+
+  function showFrame(frameNumber) {
     const lastFrame = state.frames.length - 1;
     frameNumber = clamp(frameNumber, 0, lastFrame);
     const frame = state.frames[state.currentFrame = frameNumber];
     dom.filler.css('left', ((frameNumber / lastFrame) * state.barWidth) - 4);
-    if (frame.isRendered) return context.display.drawImage(frame.drawable, 0, 0);
+    context.display.clearRect(0, 0, state.width, state.height);
+
+    // Draw current frame only if it's already rendered
+    if (frame.isRendered || state.debug.showRawFrames) {
+      return context.display.drawImage(frame.drawable, 0, 0);
+    }
 
     // Rendering not complete. Draw all frames since latest key frame as well
     const first = Math.max(0, frameNumber - (frameNumber % state.keyFrameRate));
     for (let i = first; i <= frameNumber; i++) {
-      context.display.drawImage(state.frames[i].drawable, 0, 0);
+      renderFrame(state.frames[i], context.display);
     }
   }
 
@@ -434,7 +471,7 @@ window.addEventListener('load', () => {
       togglePlaying(false);
       const reader = new FileReader();
       reader.onload = e => handleGIF(e.target.result);
-      reader.readAsArrayBuffer(e.dataTransfer.files[0]);
+      reader.readAsArrayBuffer(evt.dataTransfer.files[0]);
     });
 
   // Player controls
@@ -461,12 +498,13 @@ window.addEventListener('load', () => {
       else return togglePlaying(false);
     }
 
+    showFrame(frameNumber);
+
     if (direction === 'auto') {
       state.playTimeoutId = setTimeout(advanceFrame, state.frameDelay());
     } else {
       togglePlaying(false);
     }
-    showFrame(frameNumber);
   }
 
   function togglePlaying(playing) {
