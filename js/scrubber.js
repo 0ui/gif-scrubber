@@ -72,33 +72,64 @@ window.addEventListener('load', () => {
   // Download GIF
   // ============
 
-  let imgURL = decodeURIComponent(window.location.hash.substring(1));
   let downloadReady;
   let state = {};
+  let url = '';
+  const urlString = decodeURIComponent(window.location.hash.substring(1));
+  const urlList = JSON.parse(urlString).map(transformURL);
 
-  // Imgur support
-  if (imgURL.includes('imgur')) {
-    if (imgURL.endsWith('gifv')) imgURL = imgURL.slice(0, -1);
-    else if (imgURL.endsWith('mp4')) imgURL = imgURL.slice(0, -3) + 'gif';
-    else if (imgURL.endsWith('webm')) imgURL = imgURL.slice(0, -4) + 'gif';
-    if (!imgURL.endsWith('.gif')) imgURL += '.gif';
+  Promise.all(urlList.map(confirmGIF)).then(reason => {
+    showError('Not a valid GIF file.');
+    console.log('Could not load GIF from URL because: ',reason);
+  }, validURL => {
+    console.log('downloading...',validURL);
+    const h = new XMLHttpRequest();
+    h.responseType = 'arraybuffer';
+    h.onload = request => downloadReady = handleGIF(request.target.response);
+    h.onprogress = e => e.lengthComputable && downloadBar.set(e.loaded / e.total);
+    h.onerror = showError.bind(null, validURL);
+    h.open('GET', validURL, true);
+    h.send();
+    url = validURL;
+  });
+
+  function transformURL(url) {
+
+    // Imgur support
+    if (url.includes('imgur')) {
+      if (url.endsWith('gifv')) url = url.slice(0, -1);
+      else if (url.endsWith('mp4')) url = url.slice(0, -3) + 'gif';
+      else if (url.endsWith('webm')) url = url.slice(0, -4) + 'gif';
+      if (!url.endsWith('.gif')) url += '.gif';
+    }
+
+    // Gfycat support
+    if (url.includes('gfycat') && !url.includes('giant.gfycat')) {
+      URLparts = url.split('/');
+      let code = URLparts[URLparts.length - 1].split('.')[0];
+      if (code.endsWith('-mobile')) code = code.slice(0, -7);
+      url = `https://giant.gfycat.com/${code}.gif`;
+    }
+
+    return url;
   }
 
-  // Gfycat support
-  if (imgURL.includes('gfycat') && !imgURL.includes('giant.gfycat')) {
-    URLparts = imgURL.split('/');
-    let code = URLparts[URLparts.length - 1].split('.')[0];
-    if (code.endsWith('-mobile')) code = code.slice(0, -7);
-    imgURL = `https://giant.gfycat.com/${code}.gif`;
+  function confirmGIF(url) {
+    return new Promise(function(ignore, use) {
+      if (url === 'undefined') return ignore('undefined');
+      const h = new XMLHttpRequest();
+      h.open('GET', url);
+      h.setRequestHeader('Range', 'bytes=0-5');
+      h.onload = request => {
+        if (['GIF87a', 'GIF89a'].indexOf(request.target.response) !== -1) {
+          use(url);
+        }
+        ignore('bad header');
+      }
+      h.onerror = () => ignore('error loading');
+      h.send(null);
+    });
   }
-
-  const h = new XMLHttpRequest();
-  h.responseType = 'arraybuffer';
-  h.onload = request => downloadReady = handleGIF(request.target.response);
-  h.onprogress = e => e.lengthComputable && downloadBar.set(e.loaded / e.total);
-  h.onerror = showError.bind(null, imgURL);
-  h.open('GET', imgURL, true);
-  h.send();
 
   // Initialize player
   // =================
@@ -130,6 +161,7 @@ window.addEventListener('load', () => {
       speed: 1,
       zipGen: new JSZip(),
     };
+    window.state = state;
   }
 
   function showError(msg) {
@@ -215,13 +247,13 @@ window.addEventListener('load', () => {
     togglePlaying(preference('auto-play'));
     canvas.display.classList.add(localStorage['background-color']);
 
-    $('#url').val(imgURL)
+    $('#url').val(url)
       .on('mousedown mouseup mousmove', e => e.stopPropagation())
       .on('keydown', (e) => {
         e.stopPropagation();
         if (e.keyCode === 13) {
           const url = encodeURIComponent($('#url').val());
-          location.href = location.href.replace(location.hash,'') + '#' + url;
+          location.href = location.href.replace(location.hash,'') + '#' + JSON.stringify([url]);
           location.reload();
         }
       });
@@ -263,7 +295,12 @@ window.addEventListener('load', () => {
     const bytes = new Uint8Array(buffer);
     const trailer = new Uint8Array([0x3B]);
     const frames = [];
-    let gce, packed;
+    let gce = {
+      disposalMethod: 0,
+      transparent: 0,
+      delayTime: 10,
+    };
+    let packed;
 
     // Rendering 87a GIFs didn't work right for some reason. 
     // Forcing the 89a header made them work.
@@ -309,17 +346,9 @@ window.addEventListener('load', () => {
             size: {w, h},
           };
 
-          // Try to detect transparency in first frame
-          if (frame.number === 1 && (
-              frame.disposalMethod > 1 ||
-              frame.pos.x > 0 || 
-              frame.pos.y > 0 || 
-              frame.size.w < state.width || 
-              frame.size.h < state.height)) {
-            state.hasTransparency = true;
-          }
-          
-          // Assume transparency if using method 2 since the background could show through
+          // We try to detect transparency in first frame after drawing...
+          // But we assume transparency if using method 2 since the background
+          // could show through
           if (frame.disposalMethod === 2) {
             state.hasTransparency = true;
           }
@@ -357,8 +386,8 @@ window.addEventListener('load', () => {
   // =================
 
   function canvasToBlob(canvas) {
-    // jpeg has no transparency, webp is slow
-    const format = state.hasTransparency ? 'image/webp' : 'image/jpeg'; 
+    // jpeg has no transparency, png is slow
+    const format = state.hasTransparency ? 'image/png' : 'image/jpeg'; 
     return new Promise(resolve => canvas.toBlob(resolve, format, 0.90));
   }
 
@@ -400,12 +429,24 @@ window.addEventListener('load', () => {
       // Disposal method 2: draw image then erase portion just drawn
       // Disposal method 3: draw image then revert to previous frame
       const [{x, y}, {w, h}, method] = [prevFrame.pos, prevFrame.size, prevFrame.disposalMethod];
-      if (method === 2) ctx.clearRect(x, y, w, h); 
+      if (method === 2) ctx.clearRect(x, y, w, h);
       if (method === 3) ctx.putImageData(prevFrame.backup, 0, 0); 
     }
 
     frame.backup = method === 3 ? ctx.getImageData(...full) : null;
     ctx.drawImage(frame.drawable, ...full);
+
+    // Check first frame for transparency
+    if (!prevFrame && !state.hasTransparency && !state.firstFrameChecked) {
+      state.firstFrameChecked = true;
+      let data = ctx.getImageData(0, 0, state.width, state.height).data;
+      for (let i = 0, l = data.length; i < l; i += 4) {
+        if(data[i + 3] === 0) { // Check alpha of each pixel in frame 0
+          state.hasTransparency = true; 
+          break;
+        }
+      }
+    }
   }
 
   function showFrame(frameNumber) {
@@ -413,10 +454,12 @@ window.addEventListener('load', () => {
     frameNumber = clamp(frameNumber, 0, lastFrame);
     const frame = state.frames[state.currentFrame = frameNumber];
     dom.filler.css('left', ((frameNumber / lastFrame) * state.barWidth) - 4);
-    context.display.clearRect(0, 0, state.width, state.height);
 
     // Draw current frame only if it's already rendered
     if (frame.isRendered || state.debug.showRawFrames) {
+      if (state.hasTransparency) {
+        context.display.clearRect(0, 0, state.width, state.height);
+      }
       return context.display.drawImage(frame.drawable, 0, 0);
     }
 

@@ -8,16 +8,16 @@ function showContextMenu(info, tab) {
   if (info.menuItemId !== 'scrubber') return false;
   let link = encodeURIComponent(info.linkUrl);
   let src = encodeURIComponent(info.srcUrl);
-  let url = link.endsWith('.gif') || src === 'undefined' ? link : src;
+  let urls = JSON.stringify([link, src]);
 
   if (localStorage['open-tabs'] === 'true') {
     chrome.tabs.create({
-      url: `popup.html#${url}`,
+      url: `popup.html#${urls}`,
       selected: false,
     });
   } else {
     chrome.windows.create({
-      'url': `popup.html#${url}`,
+      'url': `popup.html#${urls}`,
       'width': 470,
       'height': 430
     });
