@@ -172,8 +172,6 @@ window.addEventListener('load', () => {
     console.timeEnd('download');
     console.time('parse');
     const bytes = new Uint8Array(buffer);
-    const headerString = bytes.subarray(0, 3).string();
-    if (headerString !== 'GIF') return showError('Error: Not a GIF image.');
     init();
 
     // Image dimensions
