@@ -5,6 +5,7 @@
     'auto-open',
     'auto-play',
     'loop-anim',
+    'mouse-scrub',
   ];
 
   let backgroundColor = localStorage['background-color'];

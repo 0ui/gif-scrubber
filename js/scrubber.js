@@ -266,7 +266,7 @@ window.addEventListener('load', () => {
       .on('mousemove', (e) => {
         if (Math.abs(e.pageX - state.scrubStart) < 2) return;
         state.clicking = false;
-        if (state.scrubbing) updateScrub(e);
+        if (state.scrubbing || preference('mouse-scrub')) updateScrub(e);
       });
 
     dom.bar.on('mousedown', updateScrub);
