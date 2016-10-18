@@ -112,13 +112,16 @@ a:hover {
 
 #scrubber-bar {
   border: 0;
+  clear: left;
+  /* cursor: pointer; */
   display: none;
+  float: left;
   height: 30px;
   margin-bottom: 5px;
+  margin-top: 5px;
+  overflow-x: hidden;
   padding: 0px;
   position: relative;
-  float: left;
-  clear: left;
 }
 
 #scrubber-bar-controller {
@@ -133,7 +136,7 @@ a:hover {
 }
 
 #scrubber-bar-filler {
-  width: 8px;
+  width: 2px;
   height: 15px;
   border: 0px;
   background-color: #f9f9f9;
@@ -142,6 +145,17 @@ a:hover {
   top: 7px;
   left: 0px;
   z-index: 49;
+}
+
+#scrubber-bar-filler:before {
+  content: '';
+  display: block;
+  width: 1500px;
+  height: 5px;
+  background-color: white;
+  position: absolute;
+  top: 4px;
+  left: -1500px;
 }
 
 #scrubber-bar-filler.raw {
@@ -164,6 +178,7 @@ a:hover {
   display: inline-block;
   position: relative;
   width: 100%;
+  cursor: pointer;
 }
 
 #canvas-display.light {

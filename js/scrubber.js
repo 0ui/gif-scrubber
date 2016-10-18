@@ -46,6 +46,7 @@ window.addEventListener('load', () => {
     speedList: $('#speed-list'),
     speeds: $('#speed-list td'),
     bar: $('#scrubber-bar'),
+    image: $('#image-holder'),
     line: $('#scrubber-bar-line'),
     spacer: $('#bubble-spacer'),
     zipIcon: $('#zip .fa'),
@@ -69,31 +70,14 @@ window.addEventListener('load', () => {
   dom.player = $add(dom.bar, dom.speedList, canvas.display, dom.spacer, '#toolbar');
   dom.loadingScreen = $add(canvas.render, '#messages', 'body');
 
-  // Download GIF
+  // Validate URL
   // ============
 
   let downloadReady;
   let state = {};
   let url = '';
   const urlString = decodeURIComponent(window.location.hash.substring(1));
-  const urlList = JSON.parse(urlString).map(transformURL);
-
-  Promise.all(urlList.map(confirmGIF)).then(reason => {
-    showError('Not a valid GIF file.');
-    console.log('Could not load GIF from URL because: ',reason);
-  }, validURL => {
-    console.log('downloading...',validURL);
-    const h = new XMLHttpRequest();
-    h.responseType = 'arraybuffer';
-    h.onload = request => downloadReady = handleGIF(request.target.response);
-    h.onprogress = e => e.lengthComputable && downloadBar.set(e.loaded / e.total);
-    h.onerror = showError.bind(null, validURL);
-    h.open('GET', validURL, true);
-    h.send();
-    url = validURL;
-  });
-
-  function transformURL(url) {
+  const urlList = JSON.parse(urlString).map(function (url) {
 
     // Imgur support
     if (url.includes('imgur')) {
@@ -112,7 +96,7 @@ window.addEventListener('load', () => {
     }
 
     return url;
-  }
+  });
 
   function confirmGIF(url) {
     return new Promise(function(ignore, use) {
@@ -121,15 +105,33 @@ window.addEventListener('load', () => {
       h.open('GET', url);
       h.setRequestHeader('Range', 'bytes=0-5');
       h.onload = request => {
-        if (['GIF87a', 'GIF89a'].indexOf(request.target.response) !== -1) {
-          use(url);
-        }
-        ignore('bad header');
+        const validHeaders = ['GIF87a', 'GIF89a'];
+        if (validHeaders.includes(request.target.response)) use(url);
+        else ignore('bad header');
       }
       h.onerror = () => ignore('error loading');
       h.send(null);
     });
   }
+
+  // Download GIF
+  // ============
+
+  Promise.all(urlList.map(confirmGIF)).then(reason => {
+    showError('Not a valid GIF file.');
+    console.log('Could not load GIF from URL because: ',reason);
+  }, validURL => {
+    console.log('downloading...',validURL);
+    console.time('download');
+    const h = new XMLHttpRequest();
+    h.responseType = 'arraybuffer';
+    h.onload = request => downloadReady = handleGIF(request.target.response);
+    h.onprogress = e => e.lengthComputable && downloadBar.set(e.loaded / e.total);
+    h.onerror = showError.bind(null, validURL);
+    h.open('GET', validURL, true);
+    h.send();
+    url = validURL;
+  });
 
   // Initialize player
   // =================
@@ -144,7 +146,7 @@ window.addEventListener('load', () => {
     }
 
     // Default state
-    state = {
+    window.state = state = {
       barWidth: null,
       currentFrame: 0,
       debug: {
@@ -161,7 +163,6 @@ window.addEventListener('load', () => {
       speed: 1,
       zipGen: new JSZip(),
     };
-    window.state = state;
   }
 
   function showError(msg) {
@@ -198,6 +199,7 @@ window.addEventListener('load', () => {
     const gct = bytes.subarray(13, pos);
 
     state.frames = parseFrames(buffer, pos, gct, state.keyFrameRate);
+    console.timeEnd('parse');
 
     return renderKeyFrames()
       .then(showControls)
@@ -209,7 +211,6 @@ window.addEventListener('load', () => {
   const chainPromises = [(x, y) => x.then(y), Promise.resolve()];
 
   function renderKeyFrames() {
-    console.timeEnd('parse');
     console.time('render-keyframes');
     return state.frames
       .map(frame => () => {
@@ -223,14 +224,13 @@ window.addEventListener('load', () => {
   function renderIntermediateFrames() {
     console.time('background-render');
     return state.frames
-      .map(frame => () => renderAndSave(frame, true))
+      .map(frame => () => renderAndSave(frame))
       .reduce(...chainPromises);
   }
 
-
   function explodeFrames() {
     console.timeEnd('background-render');
-    state.frames.map(x => dom.explodedFrames.append(x.drawable));
+    state.frames.map(x => dom.explodedFrames.append(x.canvas));
     $('#exploding-message').hide();
   }
 
@@ -239,6 +239,7 @@ window.addEventListener('load', () => {
 
   function showControls() {
     console.timeEnd('render-keyframes');
+    console.time('background-render');
     dom.player.addClass('displayed');
     dom.loadingScreen.removeClass('displayed');
     showFrame(state.currentFrame);
@@ -257,12 +258,24 @@ window.addEventListener('load', () => {
       });
 
     $(document)
-      .on('mousedown', '#bubble-spacer', () => state.scrubbing = true )
+      .on('mousedown', '#bubble-spacer', (e) => {
+        state.scrubbing = true;
+        state.scrubStart = e.pageX;
+      })
       .on('mouseup', () => state.scrubbing = false )
       .on('mousemove', (e) => {
-        const x = parseInt(e.pageX - dom.spacer[0].offsetLeft, 10);
-        if (state.scrubbing) updateScrub(x);
+        if (Math.abs(e.pageX - state.scrubStart) < 2) return;
+        state.clicking = false;
+        if (state.scrubbing) updateScrub(e);
       });
+
+    dom.bar.on('mousedown', updateScrub);
+    dom.image
+      .on('mousedown', e => { state.clicking = true })
+      .on('mouseup', e => {
+        if (state.clicking) togglePlaying(!state.playing);
+        state.clicking = false;
+      })
 
     document.body.onkeydown = (e) => {
       switch (e.keyCode) {
@@ -383,36 +396,23 @@ window.addEventListener('load', () => {
   // Drawing to canvas
   // =================
 
-  function canvasToBlob(canvas) {
-    // jpeg has no transparency, png is slow
-    const format = state.hasTransparency ? 'image/png' : 'image/jpeg'; 
-    return new Promise(resolve => canvas.toBlob(resolve, format, 0.90));
-  }
-
-  function blobToImg(blob, frame) {
-    return new Promise((resolve) => {
-      const blobURL = URL.createObjectURL(blob, {oneTimeOnly: true});
-      const img = document.createElement('img');
-      img.onload = () => {
-        renderBar.set(frame.number / state.frames.length);
-        frame.isRendered = true;
-        resolve(frame);
-      };
-      img.src = blobURL;
-      frame.blob = blob;
-      frame.drawable = img;
-    });
-  }
-
-  function renderAndSave(frame, forceKeyFrame) {
+  function renderAndSave(frame) {
     renderFrame(frame, context.render)
-
-    // Save keyFrames to <img> elements
-    if ((frame.isKeyFrame || forceKeyFrame) && !frame.isRendered) {
-      return canvasToBlob(canvas.render).then((blob) => {
-        return blobToImg(blob, frame);
-      });
+    if (frame.isRendered || !frame.isKeyFrame)  {
+      frame.isKeyFrame = true;
+      return Promise.resolve();
     }
+    return new Promise(function(resolve, reject) {
+      frame.putable = context.render.getImageData(0, 0, state.width, state.height)
+      frame.blob = null;
+      frame.drawable = null;
+      frame.isRendered = true
+      const c = frame.canvas = document.createElement('canvas');
+      [c.width, c.height] = [state.width, state.height];
+      c.getContext('2d').putImageData(frame.putable, 0, 0);
+      renderBar.set(frame.number / state.frames.length);
+      setTimeout(resolve, 0);
+    });
   }
 
   function renderFrame(frame, ctx) {
@@ -432,12 +432,12 @@ window.addEventListener('load', () => {
     }
 
     frame.backup = method === 3 ? ctx.getImageData(...full) : null;
-    ctx.drawImage(frame.drawable, ...full);
+    drawFrame(frame, ctx);
 
     // Check first frame for transparency
     if (!prevFrame && !state.hasTransparency && !state.firstFrameChecked) {
       state.firstFrameChecked = true;
-      let data = ctx.getImageData(0, 0, state.width, state.height).data;
+      const data = ctx.getImageData(0, 0, state.width, state.height).data;
       for (let i = 0, l = data.length; i < l; i += 4) {
         if(data[i + 3] === 0) { // Check alpha of each pixel in frame 0
           state.hasTransparency = true; 
@@ -447,18 +447,24 @@ window.addEventListener('load', () => {
     }
   }
 
+  function drawFrame(frame, ctx) {
+    if (frame.drawable) ctx.drawImage(frame.drawable, 0, 0, state.width, state.height);
+    else ctx.putImageData(frame.putable, 0, 0);
+  }
+
   function showFrame(frameNumber) {
     const lastFrame = state.frames.length - 1;
     frameNumber = clamp(frameNumber, 0, lastFrame);
     const frame = state.frames[state.currentFrame = frameNumber];
-    dom.filler.css('left', ((frameNumber / lastFrame) * state.barWidth) - 4);
+    let fillX = ((frameNumber / lastFrame) * state.barWidth) - 2;
+    dom.filler.css('left', Math.max(0, fillX));
 
     // Draw current frame only if it's already rendered
     if (frame.isRendered || state.debug.showRawFrames) {
       if (state.hasTransparency) {
         context.display.clearRect(0, 0, state.width, state.height);
       }
-      return context.display.drawImage(frame.drawable, 0, 0);
+      return drawFrame(frame, context.display);
     }
 
     // Rendering not complete. Draw all frames since latest key frame as well
@@ -473,14 +479,28 @@ window.addEventListener('load', () => {
 
   function downloadZip() {
     if (dom.zipIcon.hasClass('fa-spin')) return false;
+    console.time('download-generate');
     dom.zipIcon.toggleClass('fa-download fa-spinner fa-spin');
     downloadReady.then(() => {
-      state.frames.map((frame) => {
-        state.zipGen.file(`Frame ${frame.number}.jpg`, frame.blob);
-      });
-      state.zipGen.generateAsync({type: 'blob'}).then((blob) => {
-        saveAs(blob, 'gif-scrubber.zip');
-        dom.zipIcon.toggleClass('fa-download fa-spinner fa-spin');
+      let p = Promise.resolve();
+      if (!state.zipGenerated) {
+        p = state.frames.map(frame => () => {
+          return new Promise(resolve => {
+            frame.canvas.toBlob((blob) => {
+              state.zipGen.file(`Frame ${frame.number}.png`, blob);
+              frame.blob = blob;
+              resolve();
+            }, 'image/png', 1.00);
+          });
+        }).reduce(...chainPromises);
+      }
+      p.then(() => {
+        state.zipGen.generateAsync({type: 'blob'}).then((blob) => {
+          saveAs(blob, 'gif-scrubber.zip');
+          dom.zipIcon.toggleClass('fa-download fa-spinner fa-spin');
+        });
+        state.zipGenerated = true;
+        console.timeEnd('download-generate');
       });
     });
   }
@@ -519,7 +539,8 @@ window.addEventListener('load', () => {
   // Player controls
   // ===============
 
-  function updateScrub(mouseX) {
+  function updateScrub(e) {
+    mouseX = parseInt(e.pageX - dom.spacer[0].offsetLeft, 10);
     togglePlaying(false);
     mouseX = clamp(mouseX, 0, state.barWidth - 1);
     frame = parseInt((mouseX/state.barWidth) / (1/state.frames.length), 10);

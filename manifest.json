@@ -1,6 +1,6 @@
 {
   "name": "GIF Scrubber",
-  "version":"4.0.3",
+  "version":"4.1.0",
   "manifest_version": 2,
   "description": "GIF scrubber is like a movie player for animated GIFS. Play it fast, slow, backwards, or use the scrubber to go back and forth!",
   "permissions": [

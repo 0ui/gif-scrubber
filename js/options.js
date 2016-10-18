@@ -25,7 +25,7 @@
       localStorage[o] = $('#' + o).is(':checked') ? 'true' : 'false';
     });
     localStorage['background-color'] = backgroundColor;
-    $('#status').text('Options saved.').show().delay(700).fadeOut(400);
+    $('#status').text('Options saved. Refresh player to see changes.').show().delay(1400).fadeOut(400);
   }
 
   $('#save-button').on('click', saveOptions);
