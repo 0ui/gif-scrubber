@@ -3,7 +3,7 @@
 
 # gif-scrubber
 
-GIF Scrubber is a chrome extension that allows you to control gifs like a video player.
+Gif Scrubber is a chrome extension that allows you to control gifs like a video player.
 
 ![](https://raw.githubusercontent.com/0ui/gif-scrubber/master/img/screenshot-main.png)
 
@@ -26,4 +26,4 @@ After installation, right-click a gif or link to a gif and you should see an opt
 
 ![](https://raw.githubusercontent.com/0ui/gif-scrubber/master/img/screenshot-menu.png)
 
-Click the GIF Scrubber option and the full player will open.
+Click the Gif Scrubber option and the full player will open.
