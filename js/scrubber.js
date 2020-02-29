@@ -104,11 +104,11 @@ window.addEventListener('load', () => {
       const h = new XMLHttpRequest();
       h.open('GET', url);
       h.setRequestHeader('Range', 'bytes=0-5');
-      h.onload = request => {
+      h.onload = () => {
         const validHeaders = ['GIF87a', 'GIF89a'];
-        if (validHeaders.includes(request.target.response)) use(url);
+        if (validHeaders.includes(h.responseText.substr(0, 6))) use(url);
         else ignore('bad header');
-      }
+      };
       h.onerror = () => ignore('error loading');
       h.send(null);
     });
