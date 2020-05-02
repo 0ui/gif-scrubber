@@ -1,0 +1,10 @@
+{
+  "name": "gif-scrubber",
+  "version": "1.0.0",
+  "dependencies": {
+    "FileSaver": "^0.10.0",
+    "jquery": "^3.5.0",
+    "jszip": "^3.4.0",
+    "progressbar": "^1.3.0"
+  }
+}

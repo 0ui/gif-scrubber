@@ -5,8 +5,7 @@
   "description": "GIF scrubber is like a movie player for animated GIFS. Play it fast, slow, backwards, or use the scrubber to go back and forth!",
   "permissions": [
     "contextMenus",
-    "tabs",
-    "<all_urls>"
+    "activeTab"
   ],
   "icons": {
     "16": "img/icon-16.png",
