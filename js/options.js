@@ -15,22 +15,29 @@
   }
 
   function restoreOptions() {
-    options.map((o) => {
-      $('#' + o).prop('checked', localStorage[o] === 'true');
+    options.forEach((o) => {
+      document.getElementById(o).checked = localStorage[o] === 'true'
     });
     document.forms.color[backgroundColor].checked = true;
   }
 
   function saveOptions() {
-    options.map((o) => {
-      localStorage[o] = $('#' + o).is(':checked') ? 'true' : 'false';
+    options.forEach((o) => {
+      localStorage[o] = document.getElementById(o).checked ? 'true' : 'false';
     });
     localStorage['background-color'] = backgroundColor;
-    $('#status').text('Options saved. Refresh player to see changes.').show().delay(1400).fadeOut(400);
+    const status = document.getElementById('status');
+    status.textContent = 'Options saved. Refresh player to see changes.';
+    status.classList.remove('fade');
+    setTimeout(() => { status.classList.add('fade'); }, 0);
   }
 
-  $('#save-button').on('click', saveOptions);
-  $('.input-color').on('change', function (e) { pickColor(this.value) });
-  $('.input-radio').on('change', function (e) { pickColor(this.dataset.color) });
-  $(window).on('load', restoreOptions);
+  document.getElementById('save-button').addEventListener('click', saveOptions);
+  for (const input of document.getElementsByClassName('input-color')) {
+    input.addEventListener('change', e => { pickColor(e.currentTarget.value) });
+  }
+  for (const input of document.getElementsByClassName('input-radio')) {
+    input.addEventListener('change', e => { pickColor(e.currentTarget.dataset.color) });
+  }
+  window.addEventListener('load', restoreOptions);
 })();

@@ -7,7 +7,7 @@ window.addEventListener('load', () => {
     return Math.min(Math.max(num, min), max);
   }
 
-  function preference(item) { 
+  function preference(item) {
     return localStorage[item] === 'true';
   }
 
@@ -30,31 +30,31 @@ window.addEventListener('load', () => {
       circle.setText(value === 0 ? '' : `${value}%`);
     }
   };
-  const $downloadBar = $('#download-progress-bar');
-  const $renderBar = $('#render-progress-bar');
-  const downloadBar = new ProgressBar.Circle($downloadBar.get(0), barSettings);
-  const renderBar = new ProgressBar.Circle($renderBar.get(0), barSettings);
+  const $downloadBar = document.getElementById('download-progress-bar');
+  const $renderBar = document.getElementById('render-progress-bar');
+  const downloadBar = new ProgressBar.Circle($downloadBar, barSettings);
+  const renderBar = new ProgressBar.Circle($renderBar, barSettings);
 
   // DOM Cache
   // =========
 
   const dom = {
-    errorMessage: $('#error-message'),
-    explodedFrames: $('#exploded-frames'),
-    filler: $('#scrubber-bar-filler'),
-    pausePlayIcon: $('#play-pause-icon'),
-    speedList: $('#speed-list'),
-    speeds: $('#speed-list td'),
-    bar: $('#scrubber-bar'),
-    image: $('#image-holder'),
-    line: $('#scrubber-bar-line'),
-    spacer: $('#bubble-spacer'),
-    zipIcon: $('#zip .fa'),
+    errorMessage: document.getElementById('error-message'),
+    explodedFrames: document.getElementById('exploded-frames'),
+    filler: document.getElementById('scrubber-bar-filler'),
+    pausePlayIcon: document.getElementById('play-pause-icon'),
+    speedList: document.getElementById('speed-list'),
+    speeds: document.querySelectorAll('#speed-list td'),
+    bar: document.getElementById('scrubber-bar'),
+    image: document.getElementById('image-holder'),
+    line: document.getElementById('scrubber-bar-line'),
+    spacer: document.getElementById('bubble-spacer'),
+    zipIcon: document.querySelectorAll('#zip .fa'),
   };
 
   const canvas = {
-    display: $('#canvas-display').get(0),
-    render: $('#canvas-render').get(0),
+    display: document.getElementById('canvas-display'),
+    render: document.getElementById('canvas-render'),
   };
 
   const context = {
@@ -62,13 +62,10 @@ window.addEventListener('load', () => {
     render: canvas.render.getContext('2d'),
   };
 
-  // Combine jQuery selections
-  const $add = (...el) => el.reduce((x, y) => x.add(y), $());
-
-  dom.explodeView = $add(dom.explodedFrames, dom.spacer, dom.speedList)
-  dom.explodeViewToggles = $('#bomb, #exploded-frames .close');
-  dom.player = $add(dom.bar, dom.speedList, canvas.display, dom.spacer, '#toolbar');
-  dom.loadingScreen = $add(canvas.render, '#messages', 'body');
+  dom.explodeView = [dom.explodedFrames, dom.spacer, dom.speedList];
+  dom.explodeViewToggles = document.querySelectorAll('#bomb, #exploded-frames .close');
+  dom.player = [dom.bar, dom.speedList, canvas.display, dom.spacer, document.getElementById('toolbar')];
+  dom.loadingScreen = [canvas.render, document.getElementById('messages'), document.body];
 
   // Validate URL
   // ============
@@ -139,9 +136,9 @@ window.addEventListener('load', () => {
   function init() {
 
     // Clean up any previous scrubbing
-    if (!$.isEmptyObject(state)) {
-      $('#exploding-message').hide();
-      $('#exploded-frames > img').remove();
+    if (Object.entries(state).length > 0) {
+      document.getElementById('exploding-message').style.display = 'none';
+      for (const img of document.querySelectorAll('#exploded-frames > img')) img.remove();
       context.display.clearRect(0, 0, state.width, state.height);
     }
 
@@ -180,9 +177,11 @@ window.addEventListener('load', () => {
     [state.width, state.height] = dimensions;
     canvas.render.width = canvas.display.width = state.width;
     canvas.render.height = canvas.display.height = state.height;
-    dom.bar[0].style.width = dom.line[0].style.width = 
+    dom.bar.style.width = dom.line.style.width =
       state.barWidth = Math.max(state.width, 450);
-    $('#content').css({ width: state.barWidth, height: state.height });
+    const content = document.getElementById('content');
+    content.style.width = state.barWidth;
+    content.style.height = state.height;
 
     // Adjust window size
     if (!preference('open-tabs')) {
@@ -193,7 +192,7 @@ window.addEventListener('load', () => {
         });
       });
     }
-    
+
     // Record global color table
     let pos = 13 + colorTableSize(bytes[10]);
     const gct = bytes.subarray(13, pos);
@@ -231,7 +230,7 @@ window.addEventListener('load', () => {
   function explodeFrames() {
     console.timeEnd('background-render');
     state.frames.map(x => dom.explodedFrames.append(x.canvas));
-    $('#exploding-message').hide();
+    document.getElementById('exploding-message').style.display = 'none';
   }
 
   // Keyboard and mouse controls
@@ -240,44 +239,44 @@ window.addEventListener('load', () => {
   function showControls() {
     console.timeEnd('render-keyframes');
     console.time('background-render');
-    dom.player.addClass('displayed');
-    dom.loadingScreen.removeClass('displayed');
+    for (const playerEl of dom.player) playerEl.classList.add('displayed');
+    for (const loadingEl of dom.loadingScreen) loadingEl.classList.remove('displayed');
     showFrame(state.currentFrame);
     togglePlaying(preference('auto-play'));
     canvas.display.classList.add(localStorage['background-color']);
 
-    $('#url').val(url)
-      .on('mousedown mouseup mousmove', e => e.stopPropagation())
-      .on('keydown', (e) => {
-        e.stopPropagation();
-        if (e.keyCode === 13) {
-          const url = encodeURIComponent($('#url').val());
-          location.href = location.href.replace(location.hash,'') + '#' + JSON.stringify([url]);
-          location.reload();
-        }
-      });
+    const urlInput = document.getElementById('url');
+    for (const eventType of ['mousedown', 'mouseup', 'mousemove']) {
+      urlInput.addEventListener(eventType, e => e.stopPropagation());
+    }
+    urlInput.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.keyCode === 13) {
+        const url = encodeURIComponent(e.currentTarget.value);
+        location.href = location.href.replace(location.hash,'') + '#' + JSON.stringify([url]);
+        location.reload();
+      }
+    });
 
-    $(document)
-      .on('mousedown', '#bubble-spacer', (e) => {
-        state.scrubbing = true;
+    document.getElementById('bubble-spacer').addEventListener('mousedown', e => {
+       state.scrubbing = true;
         state.scrubStart = e.pageX;
-      })
-      .on('mouseup', () => state.scrubbing = false )
-      .on('mousemove', (e) => {
-        if (Math.abs(e.pageX - state.scrubStart) < 2) return;
-        state.clicking = false;
-        if (state.scrubbing || preference('mouse-scrub')) updateScrub(e);
-      });
+    })
+    document.addEventListener('mouseup', () => state.scrubbing = false )
+    document.addEventListener('mousemove', e => {
+      if (Math.abs(e.pageX - state.scrubStart) < 2) return;
+      state.clicking = false;
+      if (state.scrubbing || preference('mouse-scrub')) updateScrub(e);
+    });
 
-    dom.bar.on('mousedown', updateScrub);
-    dom.image
-      .on('mousedown', e => { state.clicking = true })
-      .on('mouseup', e => {
-        if (state.clicking) togglePlaying(!state.playing);
-        state.clicking = false;
-      })
+    dom.bar.addEventListener('mousedown', updateScrub);
+    dom.image.addEventListener('mousedown', e => { state.clicking = true })
+    dom.image.addEventListener('mouseup', e => {
+      if (state.clicking) togglePlaying(!state.playing);
+      state.clicking = false;
+    })
 
-    document.body.onkeydown = (e) => {
+    document.body.addEventListener('keydown', e => {
       switch (e.keyCode) {
         case 8: // Backspace
         case 27: // Escape
@@ -287,7 +286,7 @@ window.addEventListener('load', () => {
         case 39: return advanceFrame(1); // Right Arrow
         case 79: return options(); // O
       }
-    };
+    });
 
     if (state.debug.showRawFrames) throw 'abort rendering frames';
   }
@@ -313,7 +312,7 @@ window.addEventListener('load', () => {
     };
     let packed;
 
-    // Rendering 87a GIFs didn't work right for some reason. 
+    // Rendering 87a GIFs didn't work right for some reason.
     // Forcing the 89a header made them work.
     const headerBytes = 'GIF89a'.split('').map(x => x.charCodeAt(0), []);
     const nextBytes = bytes.subarray(6, 13);
@@ -322,7 +321,7 @@ window.addEventListener('load', () => {
     header.set(nextBytes, 6);
 
     while (pos < bytes.length) {
-      switch (bytes[pos]) { 
+      switch (bytes[pos]) {
         case 0x21:
           switch (bytes[pos+1]) {
             case 0xF9: // Graphics control extension...
@@ -428,7 +427,7 @@ window.addEventListener('load', () => {
       // Disposal method 3: draw image then revert to previous frame
       const [{x, y}, {w, h}, method] = [prevFrame.pos, prevFrame.size, prevFrame.disposalMethod];
       if (method === 2) ctx.clearRect(x, y, w, h);
-      if (method === 3) ctx.putImageData(prevFrame.backup, 0, 0); 
+      if (method === 3) ctx.putImageData(prevFrame.backup, 0, 0);
     }
 
     frame.backup = method === 3 ? ctx.getImageData(...full) : null;
@@ -440,7 +439,7 @@ window.addEventListener('load', () => {
       const data = ctx.getImageData(0, 0, state.width, state.height).data;
       for (let i = 0, l = data.length; i < l; i += 4) {
         if(data[i + 3] === 0) { // Check alpha of each pixel in frame 0
-          state.hasTransparency = true; 
+          state.hasTransparency = true;
           break;
         }
       }
@@ -457,7 +456,7 @@ window.addEventListener('load', () => {
     frameNumber = clamp(frameNumber, 0, lastFrame);
     const frame = state.frames[state.currentFrame = frameNumber];
     let fillX = ((frameNumber / lastFrame) * state.barWidth) - 2;
-    dom.filler.css('left', Math.max(0, fillX));
+    dom.filler.style.left = Math.max(0, fillX);
 
     // Draw current frame only if it's already rendered
     if (frame.isRendered || state.debug.showRawFrames) {
@@ -478,9 +477,13 @@ window.addEventListener('load', () => {
   // =======================================
 
   function downloadZip() {
-    if (dom.zipIcon.hasClass('fa-spin')) return false;
+    if (dom.zipIcon[0].classList.contains('fa-spin')) return false;
     console.time('download-generate');
-    dom.zipIcon.toggleClass('fa-download fa-spinner fa-spin');
+    for (const icon of dom.zipIcon) {
+      icon.classList.toggle('fa-download');
+      icon.classList.toggle('fa-spinner');
+      icon.classList.toggle('fa-spin');
+    };
     downloadReady.then(() => {
       let p = Promise.resolve();
       if (!state.zipGenerated) {
@@ -497,7 +500,11 @@ window.addEventListener('load', () => {
       p.then(() => {
         state.zipGen.generateAsync({type: 'blob'}).then((blob) => {
           saveAs(blob, 'gif-scrubber.zip');
-          dom.zipIcon.toggleClass('fa-download fa-spinner fa-spin');
+          for (const icon of dom.zipIcon) {
+            icon.classList.toggle('fa-download');
+            icon.classList.toggle('fa-spinner');
+            icon.classList.toggle('fa-spin');
+          };
         });
         state.zipGenerated = true;
         console.timeEnd('download-generate');
@@ -507,40 +514,39 @@ window.addEventListener('load', () => {
 
   function toggleExplodeView() {
     togglePlaying(false);
-    dom.explodeView.toggleClass('displayed');
+    for (const el of dom.explodeView) el.classList.toggle('displayed');
   }
 
   function options() {
     chrome.tabs.create({url: 'options.html'});
   }
 
-  $('a').click(e => e.preventDefault());
-  $('#gear').on('click', options);
-  $('#zip').on('click', downloadZip);
-  dom.explodeViewToggles.on('click', toggleExplodeView);
+  for (const a of document.getElementsByTagName('a')) a.addEventListener('click', e => e.preventDefault());
+  document.getElementById('gear').addEventListener('click', options);
+  document.getElementById('zip').addEventListener('click', downloadZip);
+  for (const toggle of dom.explodeViewToggles) toggle.addEventListener('click', toggleExplodeView);
 
   // Drag and drop
   // =============
 
-  $('body')
-    .on('dragover', (evt) => {
-      evt.stopPropagation();
-      evt.preventDefault();
-      evt.dataTransfer.dropEffect = 'copy';
-    })
-    .on('drop', (evt) => {
-      evt.preventDefault();
-      togglePlaying(false);
-      const reader = new FileReader();
-      reader.onload = e => handleGIF(e.target.result);
-      reader.readAsArrayBuffer(evt.dataTransfer.files[0]);
-    });
+  document.body.addEventListener('dragover', (evt) => {
+    evt.stopPropagation();
+    evt.preventDefault();
+    evt.dataTransfer.dropEffect = 'copy';
+  });
+  document.body.addEventListener('drop', (evt) => {
+    evt.preventDefault();
+    togglePlaying(false);
+    const reader = new FileReader();
+    reader.onload = e => handleGIF(e.target.result);
+    reader.readAsArrayBuffer(evt.dataTransfer.files[0]);
+  });
 
   // Player controls
   // ===============
 
   function updateScrub(e) {
-    mouseX = parseInt(e.pageX - dom.spacer[0].offsetLeft, 10);
+    mouseX = parseInt(e.pageX - dom.spacer.offsetLeft, 10);
     togglePlaying(false);
     mouseX = clamp(mouseX, 0, state.barWidth - 1);
     frame = parseInt((mouseX/state.barWidth) / (1/state.frames.length), 10);
@@ -572,7 +578,7 @@ window.addEventListener('load', () => {
 
   function togglePlaying(playing) {
     if (state.playing === playing) return;
-    dom.pausePlayIcon.toggleClass('fa-pause', playing);
+    dom.pausePlayIcon.classList.toggle('fa-pause', playing);
     if (state.playing = playing) {
       state.playTimeoutId = setTimeout(advanceFrame, state.frameDelay());
     } else {
@@ -580,13 +586,16 @@ window.addEventListener('load', () => {
     }
   }
 
-  dom.speeds.on('click', function() {
-    if (this.id === 'play-pause') return togglePlaying(!state.playing);
-    state.speed = Number(this.innerText);
-    togglePlaying(true);
-    dom.speeds.removeClass('selected');
-    $(this).addClass('selected');
-  });
+  for (const speed of dom.speeds) {
+    speed.addEventListener('click', e => {
+      if (e.currentTarget.id === 'play-pause') return togglePlaying(!state.playing);
+      state.speed = Number(e.currentTarget.innerText);
+      togglePlaying(true);
+
+      for (const speed of dom.speeds) speed.classList.remove('selected');
+      e.currentTarget.classList.add('selected');
+    });
+  }
 
 }, false);
 
