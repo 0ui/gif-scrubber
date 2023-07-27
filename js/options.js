@@ -1,36 +1,32 @@
-(function() {
+import $ from 'jquery'
+import { defaults } from './eventPage'
+const LS = chrome.storage.local;
 
-  let options = [
-    'open-tabs',
-    'auto-open',
-    'auto-play',
-    'loop-anim',
-    'mouse-scrub',
-  ];
+(async function() {
 
-  let backgroundColor = localStorage['background-color'];
+  const options = await LS.get(Object.keys(defaults));
+  Object.entries(options).forEach(async ([key, val]) => {
+    const elem = document.getElementById(key);
+    if (elem)
+      elem.checked = val;
+  });
+  document.forms['options-form']['background-color'].value = options['background-color'];
 
-  function pickColor(color) {
-    backgroundColor = color;
-  }
-
-  function restoreOptions() {
-    options.map((o) => {
-      $('#' + o).prop('checked', localStorage[o] === 'true');
+  function handleSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(document.forms['options-form']);
+    Object.entries(options).map(([key, val_]) => {
+      const val = formData.get(key);
+      const elem = document.querySelector(`input[type=checkbox][name=${key}]`)
+      if (elem) {
+        const isChecked = val === 'on';
+        LS.set({ [key]: isChecked });
+      } else {
+        LS.set({ [key]: val });
+      }
     });
-    document.forms.color[backgroundColor].checked = true;
-  }
-
-  function saveOptions() {
-    options.map((o) => {
-      localStorage[o] = $('#' + o).is(':checked') ? 'true' : 'false';
-    });
-    localStorage['background-color'] = backgroundColor;
     $('#status').text('Options saved. Refresh player to see changes.').show().delay(1400).fadeOut(400);
   }
 
-  $('#save-button').on('click', saveOptions);
-  $('.input-color').on('change', function (e) { pickColor(this.value) });
-  $('.input-radio').on('change', function (e) { pickColor(this.dataset.color) });
-  $(window).on('load', restoreOptions);
+  $('#options-form').on('submit', handleSubmit);
 })();

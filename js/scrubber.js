@@ -1,5 +1,16 @@
-window.addEventListener('load', () => {
+// import './lib/jquery.min'
+// import './lib/jszip.min'
+// import './lib/progressbar.min'
+import { saveas } from 'file-saver'
+import $ from 'jquery'
+import JSZip from 'jszip'
+import ProgressBar from 'progressbar.js'
 
+const LS = chrome.storage
+  ? chrome.storage.local
+  : browser.storage.local;
+
+window.addEventListener('load', async () => {
   const manifest = chrome.runtime.getManifest();
   document.title = `${manifest.name} ${manifest.version}`;
 
@@ -7,8 +18,9 @@ window.addEventListener('load', () => {
     return Math.min(Math.max(num, min), max);
   }
 
-  function preference(item) { 
-    return localStorage[item] === 'true';
+  async function preference(item) { 
+    const result = await LS.get(item);
+    return result[item];
   }
 
   // Progress Bars
@@ -77,25 +89,42 @@ window.addEventListener('load', () => {
   let state = {};
   let url = '';
   const urlString = decodeURIComponent(window.location.hash.substring(1));
-  const urlList = JSON.parse(urlString).map(function (url) {
+  const urlList = JSON.parse(urlString).map(function (u) {
+    try {
+      const url = new URL(u);
 
-    // Imgur support
-    if (url.includes('imgur')) {
-      if (url.endsWith('gifv')) url = url.slice(0, -1);
-      else if (url.endsWith('mp4')) url = url.slice(0, -3) + 'gif';
-      else if (url.endsWith('webm')) url = url.slice(0, -4) + 'gif';
-      if (!url.endsWith('.gif')) url += '.gif';
+      // Giphy support
+      if (url.host.endsWith('giphy.com')) {
+        console.log('Found Giphy url...', url.toString());
+        url.host = 'i.giphy.com';
+        url.pathname = url.pathname.split('.').toSpliced(-1, 1, 'gif').join('.')
+        console.log('Transformed to... ', url.toString());
+        return url.toString()
+      }
+
+      // Imgur support
+      if (url.host.endsWith('imgur.com')) {
+        console.log('Found Imgur url...', url.toString());
+        url.host = 'i.imgur.com';
+        url.pathname = url.pathname.split('.').toSpliced(-1, 1, 'gif').join('.')
+        console.log('Transformed to... ', url.toString());
+        return url.toString()
+      }
+      
+      // Reddit support
+      if (url.host.endsWith('redd.it')) {
+        console.log('Found Reddit url...', url.toString());
+        url.hostname = 'i.redd.it';
+        url.search = '';
+        console.log('Transformed to... ', url.toString());
+        return url.toString()
+      }
+
+      console.log(`No match for ${url.toString()}...`);
+      return url.toString();
+    } catch (e) {
+      return u;
     }
-
-    // Gfycat support
-    if (url.includes('gfycat') && !url.includes('giant.gfycat')) {
-      URLparts = url.split('/');
-      let code = URLparts[URLparts.length - 1].split('.')[0];
-      if (code.endsWith('-mobile')) code = code.slice(0, -7);
-      url = `https://giant.gfycat.com/${code}.gif`;
-    }
-
-    return url;
   });
 
   function bustCache(url) {
@@ -178,7 +207,7 @@ window.addEventListener('load', () => {
     dom.errorMessage.html(`<span class="error">${msg}</span>`);
   }
 
-  function handleGIF(buffer) {
+  async function handleGIF(buffer) {
     console.timeEnd('download');
     console.time('parse');
     const bytes = new Uint8Array(buffer);
@@ -194,11 +223,12 @@ window.addEventListener('load', () => {
     $('#content').css({ width: state.barWidth, height: state.height });
 
     // Adjust window size
-    if (!preference('open-tabs')) {
+    const openTabs = await preference('open-tabs');
+    if (!openTabs) {
       chrome.windows.getCurrent((win) => {
         chrome.windows.update(win.id, {
-          width: Math.max(state.width + 180, 640),
-          height: clamp(state.height + 300, 410, 850),
+          width: Math.max(state.width + 280, 740),
+          height: clamp(state.height + 340, 410, 850),
         });
       });
     }
@@ -246,14 +276,17 @@ window.addEventListener('load', () => {
   // Keyboard and mouse controls
   // ===========================
 
-  function showControls() {
+  async function showControls() {
     console.timeEnd('render-keyframes');
     console.time('background-render');
     dom.player.addClass('displayed');
     dom.loadingScreen.removeClass('displayed');
     showFrame(state.currentFrame);
-    togglePlaying(preference('auto-play'));
-    canvas.display.classList.add(localStorage['background-color']);
+    const autoPlay = await preference('auto-play');
+    const mouseScrub = await preference('mouse-scrub');
+    const backgroundColor = await preference('background-color');
+    togglePlaying(autoPlay);
+    canvas.display.classList.add(backgroundColor);
 
     $('#url').val(url)
       .on('mousedown mouseup mousmove', e => e.stopPropagation())
@@ -275,7 +308,7 @@ window.addEventListener('load', () => {
       .on('mousemove', (e) => {
         if (Math.abs(e.pageX - state.scrubStart) < 2) return;
         state.clicking = false;
-        if (state.scrubbing || preference('mouse-scrub')) updateScrub(e);
+        if (state.scrubbing || mouseScrub) updateScrub(e);
       });
 
     dom.bar.on('mousedown', updateScrub);
@@ -549,14 +582,14 @@ window.addEventListener('load', () => {
   // ===============
 
   function updateScrub(e) {
-    mouseX = parseInt(e.pageX - dom.spacer[0].offsetLeft, 10);
+    let mouseX = parseInt(e.pageX - dom.spacer[0].offsetLeft, 10);
     togglePlaying(false);
     mouseX = clamp(mouseX, 0, state.barWidth - 1);
-    frame = parseInt((mouseX/state.barWidth) / (1/state.frames.length), 10);
+    const frame = parseInt((mouseX/state.barWidth) / (1/state.frames.length), 10);
     if (frame !== state.currentFrame) showFrame(frame);
   }
 
-  function advanceFrame(direction = 'auto') {
+  async function advanceFrame(direction = 'auto') {
     let frameNumber = state.currentFrame;
     if (direction === 'auto') frameNumber += (state.speed > 0 ? 1 : -1);
     else frameNumber += direction;
@@ -564,9 +597,10 @@ window.addEventListener('load', () => {
     const loopBackward = frameNumber < 0;
     const loopForward = frameNumber >= state.frames.length;
     const lastFrame = state.frames.length - 1;
+    const loopAnim = await preference('loop-anim');
 
     if (loopBackward || loopForward) {
-      if (preference('loop-anim')) frameNumber = loopForward ? 0 : lastFrame;
+      if (loopAnim) frameNumber = loopForward ? 0 : lastFrame;
       else return togglePlaying(false);
     }
 

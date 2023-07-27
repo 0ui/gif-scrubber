@@ -1,8 +1,10 @@
 <html>
 <head>
+  <meta charset="utf-8">
   <title>GIF Scrubber</title>
   <link rel="stylesheet" href="css/scrubber.css">
-  <link rel="stylesheet" href="css/font-awesome.min.css">
+  <link href="./node_modules/@fortawesome/fontawesome-free/css/fontawesome.css" rel="stylesheet">
+  <link href="./node_modules/@fortawesome/fontawesome-free/css/solid.css" rel="stylesheet">
 </head>
 
 <body class="displayed">
@@ -26,9 +28,9 @@
     <div id="bubble-spacer" class="displayed">
 
       <div id="toolbar">
-        <a href="#" id="bomb"><i class="fa fa-bomb"></i> Explode</a>
-        <a href="#" id="zip"><i class="fa fa-download"></i> Download</a>
-        <a href="#" id="gear"><i class="fa fa-gear"></i> Options</a>
+        <a href="#" id="bomb"><i class="far fa-bomb"></i> Explode</a>
+        <a href="#" id="zip"><i class="fas fa-download"></i> Download</a>
+        <a href="#" id="gear"><i class="fas fa-gear"></i> Options</a>
         <input type="text" id="url">
       </div>
 
@@ -72,11 +74,11 @@
     </div>
   </div>
 
-  <script src="js/lib/progressbar.min.js"></script>
-  <script src="js/lib/jquery.min.js"></script>
-  <script src="js/lib/jszip.min.js"></script>
-  <script src="js/lib/FileSaver.min.js"></script>
-  <script src="js/scrubber.js"></script>
+  <!-- <script src="js/lib/progressbar.min.js"></script> -->
+  <!-- <script src="js/lib/jquery.min.js"></script> -->
+  <!-- <script src="js/lib/jszip.min.js"></script> -->
+  <!-- <script src="js/lib/FileSaver.min.js"></script> -->
+  <script type="module" src="js/scrubber.js"></script>
 </body>
 
 </html>

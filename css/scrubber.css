@@ -334,11 +334,6 @@ body.options {
   vertical-align: middle;
 }
 
-.options ul {
-  margin: 0;
-  padding: 0;
-}
-
 .options li {
   list-style: none;
   text-align: left;
@@ -356,6 +351,11 @@ body.options {
   outline: none;
   color: #fff;
   background-color: #656565;
+  cursor: pointer;
+}
+
+.options button:hover {
+  background-color: #333;
 }
 
 .options #status {
@@ -377,6 +377,29 @@ body.options {
   font-size: 1em;
   margin-top: 1em;
 }
+
+.options-list {
+  padding-left: 1em;
+  margin-bottom: 2em;
+}
+
+.background-colors-list {
+  padding-left: 1em;
+}
+
+.header-background {
+  text-align: left;
+  text-transform: uppercase;
+  font-weight: 200;
+  font-size: 1em;
+  margin: 0 0 0.5em;
+}
+
+.explainer {
+  padding-left: 3em;
+  margin: 0 0 1.5em;
+}
+
 
 .options .shortcuts h3 .fa {
   vertical-align: sub;
