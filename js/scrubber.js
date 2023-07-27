@@ -98,6 +98,15 @@ window.addEventListener('load', () => {
     return url;
   });
 
+  function bustCache(url) {
+    if (url === 'undefined') {
+      return url;
+    }
+    const urlObject = new URL(url);
+    urlObject.searchParams.set('gscb', Date.now());
+    return urlObject.toString();
+  }
+
   function confirmGIF(url) {
     return new Promise(function(ignore, use) {
       if (url === 'undefined') return ignore('undefined');
@@ -106,7 +115,7 @@ window.addEventListener('load', () => {
       h.setRequestHeader('Range', 'bytes=0-5');
       h.onload = () => {
         const validHeaders = ['GIF87a', 'GIF89a'];
-        if (validHeaders.includes(h.responseText.substr(0, 6))) use(url);
+        if (validHeaders.includes(h.responseText.slice(0, 6))) use(url);
         else ignore('bad header');
       };
       h.onerror = () => ignore('error loading');
@@ -117,20 +126,20 @@ window.addEventListener('load', () => {
   // Download GIF
   // ============
 
-  Promise.all(urlList.map(confirmGIF)).then(reason => {
+  Promise.all(urlList.map(bustCache).map(confirmGIF)).then(reason => {
     showError('Not a valid GIF file.');
     console.log('Could not load GIF from URL because: ',reason);
-  }, validURL => {
-    console.log('downloading...',validURL);
+  }, validUrl => {
+    const downloadUrl = bustCache(validUrl);
     console.time('download');
     const h = new XMLHttpRequest();
     h.responseType = 'arraybuffer';
     h.onload = request => downloadReady = handleGIF(request.target.response);
     h.onprogress = e => e.lengthComputable && downloadBar.set(e.loaded / e.total);
-    h.onerror = showError.bind(null, validURL);
-    h.open('GET', validURL, true);
+    h.onerror = showError.bind(null, downloadUrl);
+    h.open('GET', downloadUrl, true);
     h.send();
-    url = validURL;
+    url = downloadUrl;
   });
 
   // Initialize player
