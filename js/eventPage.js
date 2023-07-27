@@ -13,7 +13,7 @@ function showContextMenu(info, tab) {
   if (localStorage['open-tabs'] === 'true') {
     chrome.tabs.create({
       url: `popup.html#${urls}`,
-      selected: false,
+      active: false,
     });
   } else {
     chrome.windows.create({
