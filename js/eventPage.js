@@ -31,7 +31,7 @@ export const defaults = {
 
 // Set default options
 LS.get(Object.keys(defaults)).then(options => {
-  Object.entries(defaults).map(([key, val]) => {
+  Object.entries(defaults).forEach(([key, val]) => {
     if (typeof options[key] === 'undefined')
       LS.set({ [key]: val });
   })
