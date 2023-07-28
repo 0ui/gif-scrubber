@@ -1,6 +1,3 @@
-// import './lib/jquery.min'
-// import './lib/jszip.min'
-// import './lib/progressbar.min'
 import { saveas } from 'file-saver'
 import $ from 'jquery'
 import JSZip from 'jszip'
