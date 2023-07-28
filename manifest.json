@@ -35,7 +35,6 @@
         "<all_urls>"
       ],
       "resources": [
-        "*.woff2",
         "options.html",
         "popup.html"
       ]
