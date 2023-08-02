@@ -1,18 +1,32 @@
 {
   "name": "GIF Scrubber",
-  "version": "4.1.2",
-  "manifest_version": 2,
+  "version": "4.1.3",
+  "manifest_version": 3,
   "description": "GIF scrubber is like a movie player for animated GIFS. Play it fast, slow, backwards, or use the scrubber to go back and forth!",
-  "permissions": ["contextMenus", "<all_urls>"],
+  "permissions": ["contextMenus", "storage"],
+  "host_permissions": ["<all_urls>"],
   "icons": {
     "16": "img/icon-16.png",
     "48": "img/icon-48.png",
     "128": "img/icon-128.png"
   },
   "background": {
-    "scripts": ["js/eventPage.js"]
+    "service_worker": "js/eventPage.js",
+    "type": "module"
   },
   "options_ui": {
+    "browser_style": false,
     "page": "options.html"
-  }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "gif-scrubber@twingravity.net"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "matches": ["<all_urls>"],
+      "resources": ["options.html", "popup.html"]
+    }
+  ]
 }

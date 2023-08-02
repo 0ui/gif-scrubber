@@ -1,82 +1,83 @@
 <html>
-<head>
-  <title>GIF Scrubber</title>
-  <link rel="stylesheet" href="css/scrubber.css">
-  <link rel="stylesheet" href="css/font-awesome.min.css">
-</head>
+  <head>
+    <meta charset="utf-8" />
+    <title>GIF Scrubber</title>
+    <link rel="stylesheet" href="css/scrubber.css" />
+    <link
+      href="./node_modules/@fortawesome/fontawesome-free/css/fontawesome.css"
+      rel="stylesheet"
+    />
+    <link
+      href="./node_modules/@fortawesome/fontawesome-free/css/solid.css"
+      rel="stylesheet"
+    />
+  </head>
 
-<body class="displayed">
-
-  <div id="messages" class="displayed">
-    <div>
-      <h2 class="download">Download</h2>
-      <div id="download-progress-bar" class="download"></div>
-    </div>
-
-    <div>
-      <h2 class="render">Render</h2>
-      <div id="render-progress-bar" class="render"></div>
-    </div>
-
-    <div id="error-message"></div>
-  </div>
-
-  <div id="content">
-
-    <div id="bubble-spacer" class="displayed">
-
-      <div id="toolbar">
-        <a href="#" id="bomb"><i class="fa fa-bomb"></i> Explode</a>
-        <a href="#" id="zip"><i class="fa fa-download"></i> Download</a>
-        <a href="#" id="gear"><i class="fa fa-gear"></i> Options</a>
-        <input type="text" id="url">
+  <body class="displayed">
+    <div id="messages" class="displayed">
+      <div>
+        <h2 class="download">Download</h2>
+        <div id="download-progress-bar" class="download"></div>
       </div>
 
-      <div id="image-holder" class="cf">
-        <canvas id="canvas-display"></canvas>
-        <canvas id="canvas-render" class="displayed blur"></canvas>
+      <div>
+        <h2 class="render">Render</h2>
+        <div id="render-progress-bar" class="render"></div>
       </div>
 
-      <div id="scrubber-bar">
-        <div id="scrubber-bar-line"></div>
-        <div id="scrubber-bar-filler"></div>
-        <div id="scrubber-bar-controller"></div>
+      <div id="error-message"></div>
+    </div>
+
+    <div id="content">
+      <div id="bubble-spacer" class="displayed">
+        <div id="toolbar">
+          <a href="#" id="bomb"><i class="far fa-bomb"></i> Explode</a>
+          <a href="#" id="zip"><i class="fas fa-download"></i> Download</a>
+          <a href="#" id="gear"><i class="fas fa-gear"></i> Options</a>
+          <input type="text" id="url" />
+        </div>
+
+        <div id="image-holder" class="cf">
+          <canvas id="canvas-display"></canvas>
+          <canvas id="canvas-render" class="displayed blur"></canvas>
+        </div>
+
+        <div id="scrubber-bar">
+          <div id="scrubber-bar-line"></div>
+          <div id="scrubber-bar-filler"></div>
+          <div id="scrubber-bar-controller"></div>
+        </div>
       </div>
 
+      <table id="speed-list">
+        <tr>
+          <td>-8</td>
+          <td>-4</td>
+          <td>-2</td>
+          <td>-1</td>
+          <td>-0.5</td>
+          <td id="play-pause">
+            <i id="play-pause-icon" class="fa fa-play"></i>
+          </td>
+          <td>0.5</td>
+          <td class="selected">1</td>
+          <td>2</td>
+          <td>4</td>
+          <td>8</td>
+        </tr>
+      </table>
+
+      <div id="exploded-frames">
+        <a class="close">
+          <i class="fa fa-arrow-left"></i>
+          <div class="subtitle">Return</div>
+        </a>
+        <div id="exploding-message">
+          Exploding GIF frames <i class="fa fa-spinner fa-spin"></i>
+        </div>
+      </div>
     </div>
 
-    <table id="speed-list">
-      <tr>
-        <td>-8</td>
-        <td>-4</td>
-        <td>-2</td>
-        <td>-1</td>
-        <td>-0.5</td>
-        <td id="play-pause">
-          <i id="play-pause-icon" class="fa fa-play"></i>
-        </td>
-        <td>0.5</td>
-        <td class="selected">1</td>
-        <td>2</td>
-        <td>4</td>
-        <td>8</td>
-      </tr>
-    </table>
-
-    <div id="exploded-frames">
-      <a class="close">
-        <i class="fa fa-arrow-left"></i>
-        <div class="subtitle">Return</div>
-      </a>
-      <div id="exploding-message">Exploding GIF frames <i class="fa fa-spinner fa-spin"></i></div>
-    </div>
-  </div>
-
-  <script src="js/lib/progressbar.min.js"></script>
-  <script src="js/lib/jquery.min.js"></script>
-  <script src="js/lib/jszip.min.js"></script>
-  <script src="js/lib/FileSaver.min.js"></script>
-  <script src="js/scrubber.js"></script>
-</body>
-
+    <script type="module" src="js/scrubber.js"></script>
+  </body>
 </html>

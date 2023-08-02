@@ -28,4 +28,4 @@ After installation, right-click a gif or link to a gif and you should see an opt
 
 Click the GIF Scrubber option and the full player will open.
 
-Gif Scrubber does not work on local files by default but you can get this working by enabling the "Allow access to file URLs" option in the Chrome extension management settings for GIF Scrubber. 
+Gif Scrubber does not work on local files by default but you can get this working by enabling the "Allow access to file URLs" option in the Chrome extension management settings for GIF Scrubber.

@@ -1,3 +1,5 @@
+/* TODO: Clean up styles / UI */
+
 html,
 body {
   padding: 0;
@@ -91,9 +93,8 @@ a:hover {
   max-height: 600px;
 }
 
-
-#canvas-render { 
-  display: none; 
+#canvas-render {
+  display: none;
 }
 
 #content {
@@ -186,7 +187,8 @@ a:hover {
 }
 
 #canvas-display.checker {
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAKElEQVQoU2N8/fr1fwY0ICIigi7EwDgUFP7//x/DM2/evMH0zBBQCAAfHTW3vSJ0fQAAAABJRU5ErkJggg==) repeat;
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAKElEQVQoU2N8/fr1fwY0ICIigi7EwDgUFP7//x/DM2/evMH0zBBQCAAfHTW3vSJ0fQAAAABJRU5ErkJggg==)
+    repeat;
   background-size: 20px 20px;
   image-rendering: pixelated;
 }
@@ -314,8 +316,8 @@ a:hover {
   display: none;
   width: 300px;
   height: 20px;
-  border: 2px dashed #BBB;
-  color: #BBB;
+  border: 2px dashed #bbb;
+  color: #bbb;
   font-size: 14px;
   text-align: center;
 }
@@ -332,11 +334,6 @@ body.options {
 
 .options h3 .fa {
   vertical-align: middle;
-}
-
-.options ul {
-  margin: 0;
-  padding: 0;
 }
 
 .options li {
@@ -356,6 +353,11 @@ body.options {
   outline: none;
   color: #fff;
   background-color: #656565;
+  cursor: pointer;
+}
+
+.options button:hover {
+  background-color: #333;
 }
 
 .options #status {
@@ -376,6 +378,28 @@ body.options {
   font-weight: 200;
   font-size: 1em;
   margin-top: 1em;
+}
+
+.options-list {
+  padding-left: 1em;
+  margin-bottom: 2em;
+}
+
+.background-colors-list {
+  padding-left: 1em;
+}
+
+.header-background {
+  text-align: left;
+  text-transform: uppercase;
+  font-weight: 200;
+  font-size: 1em;
+  margin: 0 0 0.5em;
+}
+
+.explainer {
+  padding-left: 3em;
+  margin: 0 0 1.5em;
 }
 
 .options .shortcuts h3 .fa {
@@ -416,7 +440,8 @@ body.options {
 }
 
 .options label[data-color='checker'] .sample {
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAKElEQVQoU2PcsWPHfwY04O7uji7EwDgUFP7//x/DMzt37sT0zBBQCAC1ajK6x0OpYwAAAABJRU5ErkJggg==) repeat;
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAKElEQVQoU2PcsWPHfwY04O7uji7EwDgUFP7//x/DMzt37sT0zBBQCAC1ajK6x0OpYwAAAABJRU5ErkJggg==)
+    repeat;
   background-size: 20px 20px;
   image-rendering: pixelated;
 }
