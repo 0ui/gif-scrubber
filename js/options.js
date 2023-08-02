@@ -11,8 +11,7 @@ const LS = chrome.storage.local
   document.forms['options-form']['background-color'].value =
     options['background-color']
 
-  function handleSubmit(e) {
-    e.preventDefault()
+  function handleSubmit() {
     const formData = new FormData(document.forms['options-form'])
     Object.entries(options).map(([key, val_]) => {
       const val = formData.get(key)
@@ -31,5 +30,5 @@ const LS = chrome.storage.local
       .fadeOut(400)
   }
 
-  $('#options-form').on('submit', handleSubmit)
+  $('#options-form input').on('change', handleSubmit)
 })()
