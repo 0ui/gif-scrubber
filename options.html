@@ -1,60 +1,105 @@
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>GIF Scrubber Options</title>
-  <link rel="stylesheet" href="css/scrubber.css">
-  <link href="./node_modules/@fortawesome/fontawesome-free/css/fontawesome.css" rel="stylesheet">
-  <link href="./node_modules/@fortawesome/fontawesome-free/css/solid.css" rel="stylesheet">
-</head>
+  <head>
+    <meta charset="utf-8" />
+    <title>GIF Scrubber Options</title>
+    <link rel="stylesheet" href="css/scrubber.css" />
+    <link
+      href="./node_modules/@fortawesome/fontawesome-free/css/fontawesome.css"
+      rel="stylesheet"
+    />
+    <link
+      href="./node_modules/@fortawesome/fontawesome-free/css/solid.css"
+      rel="stylesheet"
+    />
+  </head>
 
-<body class="options">
-  <form id="options-form">
-  <h3><i class="fa fa-gear" style="width:1em;"></i> Options</h3>
-  <ul class="options-list">
-    <li><input type="checkbox" id="open-tabs" name="open-tabs"> <label for="open-tabs">Open scrubber in new tab instead of new window</label></li>
-    <li><input type="checkbox" id="auto-open"> <label for="auto-open">Automatically open scrubber when opening GIFs</label></li>
-    <li><input type="checkbox" id="auto-play" name="auto-play"> <label for="auto-play">Start playing as soon as image loads</label></li>
-    <li><input type="checkbox" id="loop-anim" name="loop-anim"> <label for="loop-anim">Loop animation</label></li>
-    <li><input type="checkbox" id="mouse-scrub" name="mouse-scrub"> <label for="mouse-scrub">Mouse hover automatically scrubs</label></li>
-  </ul>
-  <h3 class="header-background"><i class="fa fa-tint" style="width:1em;"></i> Player Background</h3>
-  <p class="explainer">Visible only with transparent GIF</p>
-  <ul class="background-colors-list">
-          <li>
-            <label class="input-radio" data-color="light">
-              <input name="background-color" type="radio" value="light">
-              <div class="sample"></div> Light
-            </label>
-          </li>
-          <li>
-            <label class="input-radio" data-color="dark">
-              <input name="background-color" type="radio" value="dark">
-              <div class="sample"></div> Dark
-            </label>
-          </li>
-          <li>
-            <label class="input-radio" data-color="checker">
-              <input name="background-color" type="radio" value="checker">
-              <div class="sample"></div> Checker
-            </label>
-          </li>
-  </ul>
-  
-  <button type="submit">Save</button>
+  <body class="options">
+    <form id="options-form">
+      <h3><i class="fa fa-gear" style="width: 1em"></i> Options</h3>
+      <ul class="options-list">
+        <li>
+          <input type="checkbox" id="open-tabs" name="open-tabs" />
+          <label for="open-tabs"
+            >Open scrubber in new tab instead of new window</label
+          >
+        </li>
+        <li>
+          <input type="checkbox" id="auto-open" />
+          <label for="auto-open"
+            >Automatically open scrubber when opening GIFs</label
+          >
+        </li>
+        <li>
+          <input type="checkbox" id="auto-play" name="auto-play" />
+          <label for="auto-play">Start playing as soon as image loads</label>
+        </li>
+        <li>
+          <input type="checkbox" id="loop-anim" name="loop-anim" />
+          <label for="loop-anim">Loop animation</label>
+        </li>
+        <li>
+          <input type="checkbox" id="mouse-scrub" name="mouse-scrub" />
+          <label for="mouse-scrub">Mouse hover automatically scrubs</label>
+        </li>
+      </ul>
+      <h3 class="header-background">
+        <i class="fa fa-tint" style="width: 1em"></i> Player Background
+      </h3>
+      <p class="explainer">Visible only with transparent GIF</p>
+      <ul class="background-colors-list">
+        <li>
+          <label class="input-radio" data-color="light">
+            <input name="background-color" type="radio" value="light" />
+            <div class="sample"></div>
+            Light
+          </label>
+        </li>
+        <li>
+          <label class="input-radio" data-color="dark">
+            <input name="background-color" type="radio" value="dark" />
+            <div class="sample"></div>
+            Dark
+          </label>
+        </li>
+        <li>
+          <label class="input-radio" data-color="checker">
+            <input name="background-color" type="radio" value="checker" />
+            <div class="sample"></div>
+            Checker
+          </label>
+        </li>
+      </ul>
 
-  <p id="status">-</p>
+      <button type="submit">Save</button>
 
-  <div class="shortcuts">
-    <h3><i class="fa fa-2x fa-keyboard"></i> Keyboard Shortcuts</h3>
-    <table>
-      <tr><td>Pause/play GIF</td><td>Space Bar</td></tr>
-      <tr><td>Go back one frame</td><td>Left Arrow</td></tr>
-      <tr><td>Go forward one frame</td><td>Right Arrow</td></tr>
-      <tr><td>Toggle explode view</td><td>E, Esc, Backspace</td></tr>
-      <tr><td>Open options (this page)</td><td>O</td></tr>
-    </table>
-  </div>
-  </form>
-  <script type="module" src="js/options.js"></script>
-</body>
+      <p id="status">-</p>
+
+      <div class="shortcuts">
+        <h3><i class="fa fa-2x fa-keyboard"></i> Keyboard Shortcuts</h3>
+        <table>
+          <tr>
+            <td>Pause/play GIF</td>
+            <td>Space Bar</td>
+          </tr>
+          <tr>
+            <td>Go back one frame</td>
+            <td>Left Arrow</td>
+          </tr>
+          <tr>
+            <td>Go forward one frame</td>
+            <td>Right Arrow</td>
+          </tr>
+          <tr>
+            <td>Toggle explode view</td>
+            <td>E, Esc, Backspace</td>
+          </tr>
+          <tr>
+            <td>Open options (this page)</td>
+            <td>O</td>
+          </tr>
+        </table>
+      </div>
+    </form>
+    <script type="module" src="js/options.js"></script>
+  </body>
 </html>

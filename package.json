@@ -5,18 +5,19 @@
     "@fortawesome/fontawesome-free": "^6.4.0",
     "@parcel/config-webextension": "^2.9.3",
     "buffer": "^6.0.3",
-    "convert-manifest-format": "^0.4.0",
     "file-saver": "^2.0.5",
+    "immer": "^10.0.2",
     "jquery": "^3.7.0",
     "jszip": "^3.10.1",
     "parcel": "^2.9.3",
     "process": "^0.11.10",
-    "progressbar.js": "^1.1.0"
+    "progressbar.js": "^1.1.0",
+    "rimraf": "^5.0.1"
   },
   "scripts": {
-    "build": "npm run build:chrome && npm run build:firefox",
-    "build:chrome": "parcel build manifest.json --target=chrome --no-source-maps",
-    "build:firefox": "parcel build manifest.json --target=firefox --no-source-maps && cd dist/firefox && convert-manifest-format --firefox && cd ../..",
+    "build": "rimraf ./dist && npm run build:chrome && npm run build:firefox",
+    "build:chrome": "parcel build manifest.json --target=chrome --no-source-maps && cd dist/chrome && node ../../lib/convert.mjs --chrome && cd ../..",
+    "build:firefox": "parcel build manifest.json --target=firefox --no-source-maps && cd dist/firefox && node ../../lib/convert.mjs --firefox && cd ../..",
     "start:chrome": "parcel watch manifest.json --target=chrome --host localhost",
     "start:firefox": "parcel watch manifest.json --target=firefox --host localhost"
   },
