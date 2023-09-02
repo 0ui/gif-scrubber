@@ -3,7 +3,7 @@
 
 # gif-scrubber
 
-GIF Scrubber is a chrome extension that allows you to control gifs like a video player.
+GIF Scrubber is a Chrome extension that allows you to control gifs like a video player.
 
 ![](https://raw.githubusercontent.com/0ui/gif-scrubber/master/img/screenshot-main.png)
 
@@ -29,3 +29,24 @@ After installation, right-click a gif or link to a gif and you should see an opt
 Click the GIF Scrubber option and the full player will open.
 
 Gif Scrubber does not work on local files by default but you can get this working by enabling the "Allow access to file URLs" option in the Chrome extension management settings for GIF Scrubber.
+
+# Building this project
+
+### Install dependencies
+
+> [!NOTE]  
+> Required for further steps
+
+`npm ci`
+
+### Build distributable extensions
+
+`npm run build` will generate loadable but static development extensions at `./dist/[target]` as well as a distributable version within `./dist/[target]/gif-scrubber_[version]_[target].zip`
+
+### Build for development
+
+`npm start:chrome` will start a development server for the Chrome extension which will rebuild on save so you can quickly reload.
+`npm start:firefox` will do the same for Firefox
+
+> [!WARNING]  
+> The base manifest defaults to Chrome settings, i.e. `background.service_worker`, so you'll have to manually modify that to run the dev server for Firefox.

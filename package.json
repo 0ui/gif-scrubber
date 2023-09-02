@@ -24,7 +24,7 @@
     "parcel:chrome": "parcel build manifest.json --target=chrome --no-source-maps",
     "parcel:firefox": "parcel build manifest.json --target=firefox --no-source-maps",
     "start:chrome": "parcel watch manifest.json --target=chrome --host localhost",
-    "start:firefox": "npm run build:manifest --target=firefox --no-source-maps"
+    "start:firefox": "parcel watch manifest.json --target=firefox --no-source-maps"
   },
   "targets": {
     "chrome": {
