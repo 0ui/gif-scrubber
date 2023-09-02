@@ -1,4 +1,3 @@
-import { saveas } from 'file-saver'
 import $ from 'jquery'
 import JSZip from 'jszip'
 import ProgressBar from 'progressbar.js'
@@ -67,8 +66,8 @@ window.addEventListener(
     }
 
     const context = {
-      display: canvas.display.getContext('2d'),
-      render: canvas.render.getContext('2d'),
+      display: canvas.display.getContext('2d', { willReadFrequently: true }),
+      render: canvas.render.getContext('2d', { willReadFrequently: true }),
     }
 
     // Combine jQuery selections
@@ -283,14 +282,14 @@ window.addEventListener(
     }
 
     function renderIntermediateFrames() {
-      console.time('background-render')
+      // console.time('background-render')
       return state.frames
         .map((frame) => () => renderAndSave(frame))
         .reduce(...chainPromises)
     }
 
     function explodeFrames() {
-      console.timeEnd('background-render')
+      // console.timeEnd('background-render')
       state.frames.map((x) => dom.explodedFrames.append(x.canvas))
       $('#exploding-message').hide()
     }
@@ -300,7 +299,7 @@ window.addEventListener(
 
     async function showControls() {
       console.timeEnd('render-keyframes')
-      console.time('background-render')
+      // console.time('background-render')
       dom.player.addClass('displayed')
       dom.loadingScreen.removeClass('displayed')
       showFrame(state.currentFrame)
@@ -494,7 +493,11 @@ window.addEventListener(
         frame.isRendered = true
         const c = (frame.canvas = document.createElement('canvas'))
         ;[c.width, c.height] = [state.width, state.height]
-        c.getContext('2d').putImageData(frame.putable, 0, 0)
+        c.getContext('2d', { willReadFrequently: true }).putImageData(
+          frame.putable,
+          0,
+          0
+        )
         renderBar.set(frame.number / state.frames.length)
         setTimeout(resolve, 0)
       })
