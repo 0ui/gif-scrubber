@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver'
 import $ from 'jquery'
 import JSZip from 'jszip'
 import ProgressBar from 'progressbar.js'
