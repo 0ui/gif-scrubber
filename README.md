@@ -45,8 +45,8 @@ Gif Scrubber does not work on local files by default but you can get this workin
 
 ### Build for development
 
-`npm start:chrome` will start a development server for the Chrome extension which will rebuild on save so you can quickly reload.
-`npm start:firefox` will do the same for Firefox
+- `npm start:chrome` will start a development server for the Chrome extension which will rebuild on save so you can quickly reload.
+- `npm start:firefox` will do the same for Firefox
 
 > [!WARNING]  
 > The base manifest defaults to Chrome settings, i.e. `background.service_worker`, so you'll have to manually modify that to run the dev server for Firefox.
