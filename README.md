@@ -20,7 +20,7 @@ GIF Scrubber is a Chrome extension that allows you to control gifs like a video 
 
 # Installation
 
-Install from the Chrome Web Store: https://chrome.google.com/webstore/detail/gif-scrubber/gbdacbnhlfdlllckelpdkgeklfjfgcmp
+Install from the [Chrome Web Store](https://chrome.google.com/webstore/detail/gif-scrubber/gbdacbnhlfdlllckelpdkgeklfjfgcmp) or [Firefox add-ons](https://addons.mozilla.org/en-US/firefox/addon/gif-scrubber3/)
 
 After installation, right-click a gif or link to a gif and you should see an option to open GIF Scrubber:
 
