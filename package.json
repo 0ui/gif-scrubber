@@ -21,8 +21,8 @@
     "build:manifest": "parcel build manifest.json",
     "build:chrome": "npm run parcel:chrome && node lib/archive.mjs chrome",
     "build:firefox": "npm run parcel:firefox && node lib/archive.mjs firefox",
-    "parcel:chrome": "parcel build manifest.json --target=chrome --no-source-maps",
-    "parcel:firefox": "parcel build manifest.json --target=firefox --no-source-maps",
+    "parcel:chrome": "parcel build manifest.json --target=chrome --no-source-maps --no-scope-hoist",
+    "parcel:firefox": "parcel build manifest.json --target=firefox --no-source-maps --no-scope-hoist",
     "start:chrome": "parcel watch manifest.json --target=chrome --host localhost",
     "start:firefox": "parcel watch manifest.json --target=firefox --no-source-maps"
   },
