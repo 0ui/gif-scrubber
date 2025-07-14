@@ -137,10 +137,16 @@ window.addEventListener(
     })
 
     function bustCache(url) {
-      if (url === 'undefined') {
+      if (url === 'undefined' || url === '') {
         return url
       }
-      const urlObject = new URL(url)
+      let urlObject
+      try {
+        urlObject = new URL(url)
+      } catch (e) {
+        console.error(`Bad URL to bust cache (${url})... `)
+        return url
+      }
       urlObject.searchParams.set('gscb', Date.now())
       return urlObject.toString()
     }
