@@ -406,10 +406,17 @@ window.addEventListener(
         (frameNumber / lastFrame) * dom.bar[0].offsetWidth
       )
 
+      state.decoder.reset()
       const token = ++decodeToken
-      const result = await state.decoder.decode({ frameIndex: frameNumber })
-
-      // Prevent stale decode from being shown to user
+      let result
+      try {
+        result = await state.decoder.decode({ frameIndex: frameNumber })
+      } catch (e) {
+        // Decode was aborted by a newer showFrame call — ignore
+        // This can happen when scrubbing forward and backward
+        if (e.name === 'AbortError') return
+        throw e
+      }
       if (token !== decodeToken) return
 
       const frame = state.frames[frameNumber]
@@ -465,8 +472,7 @@ window.addEventListener(
       dom.explodeView.toggleClass('displayed')
       if (state.exploded) return
       await renderAllFrames()
-      for (const frame of state.frames)
-        dom.explodedFrames.append(frame.canvas)
+      for (const frame of state.frames) dom.explodedFrames.append(frame.canvas)
       state.exploded = true
     }
 
