@@ -4,7 +4,6 @@ import JSZip from 'jszip'
 import ProgressBar from 'progressbar.js'
 
 const LS = chrome.storage ? chrome.storage.local : browser.storage.local
-
 window.addEventListener(
   'load',
   async () => {
@@ -40,9 +39,7 @@ window.addEventListener(
       },
     }
     const $downloadBar = $('#download-progress-bar')
-    const $renderBar = $('#render-progress-bar')
     const downloadBar = new ProgressBar.Circle($downloadBar.get(0), barSettings)
-    const renderBar = new ProgressBar.Circle($renderBar.get(0), barSettings)
 
     // DOM Cache
     // =========
@@ -63,12 +60,10 @@ window.addEventListener(
 
     const canvas = {
       display: $('#canvas-display').get(0),
-      render: $('#canvas-render').get(0),
     }
 
     const context = {
       display: canvas.display.getContext('2d', { willReadFrequently: true }),
-      render: canvas.render.getContext('2d', { willReadFrequently: true }),
     }
 
     // Combine jQuery selections
@@ -83,7 +78,7 @@ window.addEventListener(
       dom.spacer,
       '#toolbar'
     )
-    dom.loadingScreen = $add(canvas.render, '#messages', 'body')
+    dom.loadingScreen = $('#messages')
 
     // Validate URL
     // ============
@@ -143,24 +138,45 @@ window.addEventListener(
       let urlObject
       try {
         urlObject = new URL(url)
+        if (urlObject.host.endsWith('redd.it')) {
+          // Reddit does not support cache busting parameter
+          return url
+        }
       } catch (e) {
-        console.error(`Bad URL to bust cache (${url})... `)
+        console.error(`Bad URL to bust cache (${url})... `, e)
         return url
       }
       urlObject.searchParams.set('gscb', Date.now())
       return urlObject.toString()
     }
 
+    function detectMime(bytes) {
+      const header = String.fromCharCode(...bytes.slice(0, 12))
+      if (header.startsWith('GIF87a') || header.startsWith('GIF89a'))
+        return 'image/gif'
+      if (header.slice(0, 4) === 'RIFF' && header.slice(8, 12) === 'WEBP')
+        return 'image/webp'
+      return null
+    }
+
     function confirmGIF(url) {
       return new Promise(function (ignore, use) {
-        if (url === 'undefined') return ignore('undefined')
+        if (url === 'undefined' || url === '') return ignore('undefined')
         const h = new XMLHttpRequest()
+        h.responseType = 'arraybuffer'
         h.open('GET', url)
-        h.setRequestHeader('Range', 'bytes=0-5')
+        h.setRequestHeader('Range', 'bytes=0-15')
         h.onload = () => {
-          const validHeaders = ['GIF87a', 'GIF89a']
-          if (validHeaders.includes(h.responseText.slice(0, 6))) use(url)
-          else ignore('bad header')
+          const bytes = new Uint8Array(h.response, 0, 15)
+          const headerStr = String.fromCharCode(...bytes.slice(0, 12))
+          console.log('Checking response ' + headerStr)
+          const mime = detectMime(bytes)
+          if (mime) {
+            use({ url, type: mime })
+          } else {
+            console.error('Bad header:', headerStr)
+            ignore('bad header')
+          }
         }
         h.onerror = () => ignore('error loading')
         h.send(null)
@@ -171,17 +187,26 @@ window.addEventListener(
     // ============
 
     Promise.all(urlList.map(bustCache).map(confirmGIF)).then(
-      (reason) => {
-        showError('Not a valid GIF file.')
-        console.log('Could not load GIF from URL because: ', reason)
+      (reasons) => {
+        const messages = {
+          'bad header': 'Not a valid GIF or WebP file.',
+          undefined: 'URL is undefined.',
+          'error loading': 'Error loading URL.',
+        }
+        const msg = reasons.map((r) => messages[r] || r).join(' ')
+        showError(msg)
+        console.log(`Could not load file from URL because of: `, reasons)
       },
-      (validUrl) => {
-        const downloadUrl = bustCache(validUrl)
+      (valid) => {
+        const downloadUrl = bustCache(valid.url)
+        console.log(`File type detected: ${valid.type}`)
         console.time('download')
         const h = new XMLHttpRequest()
         h.responseType = 'arraybuffer'
-        h.onload = (request) =>
-          (downloadReady = handleGIF(request.target.response))
+        h.onload = (request) => {
+          console.timeEnd('download')
+          downloadReady = handleImage(request.target.response, valid.type)
+        }
         h.onprogress = (e) =>
           e.lengthComputable && downloadBar.set(e.loaded / e.total)
         h.onerror = showError.bind(null, downloadUrl)
@@ -200,17 +225,13 @@ window.addEventListener(
         $('#exploding-message').hide()
         $('#exploded-frames > img').remove()
         context.display.clearRect(0, 0, state.width, state.height)
+        if (state.decoder) state.decoder.close()
       }
 
       // Default state
       window.state = state = {
         barWidth: null,
         currentFrame: 0,
-        debug: {
-          showRawFrames: false,
-        },
-        hasTransparency: false,
-        keyFrameRate: 15, // Performance: Pre-render every n frames
         frame() {
           return this.frames[this.currentFrame]
         },
@@ -219,7 +240,6 @@ window.addEventListener(
         },
         frames: [],
         playing: false,
-        playTimeoutId: null,
         scrubbing: false,
         speed: 1,
         zipGen: new JSZip(),
@@ -230,74 +250,68 @@ window.addEventListener(
       dom.errorMessage.html(`<span class="error">${msg}</span>`)
     }
 
-    async function handleGIF(buffer) {
-      console.timeEnd('download')
-      console.time('parse')
-      const bytes = new Uint8Array(buffer)
-      init()
+    async function setupPlayer(width, height) {
+      width = Math.round(width)
+      height = Math.round(height)
+      state.width = width
+      state.height = height
+      canvas.display.width = width
+      canvas.display.height = height
+      dom.bar[0].style.width = dom.line[0].style.width = '100%'
+      state.barWidth = Math.max(width, 450)
+      $('#content').css({ maxWidth: state.barWidth, width: '100%' })
 
-      // Image dimensions
-      const dimensions = new Uint16Array(buffer, 6, 2)
-      ;[state.width, state.height] = dimensions
-      canvas.render.width = canvas.display.width = state.width
-      canvas.render.height = canvas.display.height = state.height
-      dom.bar[0].style.width =
-        dom.line[0].style.width =
-        state.barWidth =
-          Math.max(state.width, 450)
-      $('#content').css({ width: state.barWidth, height: state.height })
-
-      // Adjust window size
       const openTabs = await preference('open-tabs')
       if (!openTabs) {
         chrome.windows.getCurrent((win) => {
           chrome.windows.update(win.id, {
-            width: Math.max(state.width + 280, 740),
-            height: clamp(state.height + 340, 410, 850),
+            width: Math.max(width + 30, 500),
+            height: height + 200,
           })
         })
       }
-
-      // Record global color table
-      let pos = 13 + colorTableSize(bytes[10])
-      const gct = bytes.subarray(13, pos)
-
-      state.frames = parseFrames(buffer, pos, gct, state.keyFrameRate)
-      console.timeEnd('parse')
-
-      return renderKeyFrames()
-        .then(showControls)
-        .then(renderIntermediateFrames)
-        .then(explodeFrames)
-        .catch((err) => console.error('Rendering GIF failed!', err))
     }
 
-    const chainPromises = [(x, y) => x.then(y), Promise.resolve()]
+    async function handleImage(buffer, mimeType) {
+      console.time('decode')
+      init()
 
-    function renderKeyFrames() {
-      console.time('render-keyframes')
-      return state.frames
-        .map((frame) => () => {
-          return createImageBitmap(frame.blob)
-            .then((bitmap) => {
-              frame.drawable = bitmap
-              return frame
-            })
-            .then(renderAndSave)
-        })
-        .reduce(...chainPromises)
-    }
+      let decoder
+      try {
+        decoder = new ImageDecoder({ data: buffer, type: mimeType })
+        await decoder.tracks.ready
+      } catch (e) {
+        showError(`Cannot decode ${mimeType}.`)
+        return
+      }
+      const track = decoder.tracks.selectedTrack
+      if (!track) {
+        showError(`No decodable track found in ${mimeType}.`)
+        return
+      }
+      const frameCount = track.frameCount
+      const first = await decoder.decode({ frameIndex: 0 })
+      const firstFrame = first.image
+      const w = firstFrame.displayWidth || track.displayWidth
+      const h = firstFrame.displayHeight || track.displayHeight
+      await setupPlayer(w, h)
 
-    function renderIntermediateFrames() {
-      // console.time('background-render')
-      return state.frames
-        .map((frame) => () => renderAndSave(frame))
-        .reduce(...chainPromises)
-    }
+      state.decoder = decoder
+      state.frames = Array.from({ length: frameCount }, (_, i) => ({
+        number: i + 1,
+        delayTime:
+          i === 0
+            ? firstFrame.duration
+              ? firstFrame.duration / 1000
+              : 100
+            : undefined,
+      }))
 
-    function explodeFrames() {
-      // console.timeEnd('background-render')
-      state.frames.map((x) => dom.explodedFrames.append(x.canvas))
+      context.display.clearRect(0, 0, state.width, state.height)
+      context.display.drawImage(firstFrame, 0, 0)
+      console.timeEnd('decode')
+
+      showControls()
       $('#exploding-message').hide()
     }
 
@@ -305,11 +319,9 @@ window.addEventListener(
     // ===========================
 
     async function showControls() {
-      console.timeEnd('render-keyframes')
-      // console.time('background-render')
       dom.player.addClass('displayed')
       dom.loadingScreen.removeClass('displayed')
-      showFrame(state.currentFrame)
+      await showFrame(state.currentFrame)
       const autoPlay = await preference('auto-play')
       const mouseScrub = await preference('mouse-scrub')
       const backgroundColor = await preference('background-color')
@@ -335,6 +347,7 @@ window.addEventListener(
         .on('mousedown', '#bubble-spacer', (e) => {
           state.scrubbing = true
           state.scrubStart = e.pageX
+          if (e.target.tagName !== 'CANVAS') updateScrub(e)
         })
         .on('mouseup', () => (state.scrubbing = false))
         .on('mousemove', (e) => {
@@ -343,10 +356,14 @@ window.addEventListener(
           if (state.scrubbing || mouseScrub) updateScrub(e)
         })
 
-      dom.bar.on('mousedown', updateScrub)
+      dom.bar.on('mousedown', (e) => {
+        state.scrubbing = true
+        state.scrubStart = e.pageX
+        updateScrub(e)
+      })
       dom.image
         .on('mousedown', (e) => {
-          state.clicking = true
+          if (e.target.tagName === 'CANVAS') state.clicking = true
         })
         .on('mouseup', (e) => {
           if (state.clicking) togglePlaying(!state.playing)
@@ -369,259 +386,94 @@ window.addEventListener(
             return options() // O
         }
       }
-
-      if (state.debug.showRawFrames) throw 'abort rendering frames'
-    }
-
-    // GIF parsing
-    // ===========
-
-    function colorTableSize(packedHeader) {
-      const tableFlag = packedHeader.bits(0, 1)
-      if (tableFlag !== 1) return 0
-      const size = packedHeader.bits(5, 3)
-      return 3 * Math.pow(2, size + 1)
-    }
-
-    function parseFrames(buffer, pos, gct, keyFrameRate) {
-      const bytes = new Uint8Array(buffer)
-      const trailer = new Uint8Array([0x3b])
-      const frames = []
-      let gce = {
-        disposalMethod: 0,
-        transparent: 0,
-        delayTime: 10,
-      }
-      let packed
-
-      // Rendering 87a GIFs didn't work right for some reason.
-      // Forcing the 89a header made them work.
-      const headerBytes = 'GIF89a'.split('').map((x) => x.charCodeAt(0), [])
-      const nextBytes = bytes.subarray(6, 13)
-      const header = new Uint8Array(13)
-      header.set(headerBytes)
-      header.set(nextBytes, 6)
-
-      while (pos < bytes.length) {
-        switch (bytes[pos]) {
-          case 0x21:
-            switch (bytes[pos + 1]) {
-              case 0xf9: // Graphics control extension...
-                packed = bytes[pos + 3]
-                gce = {
-                  pos: pos,
-                  disposalMethod: packed.bits(3, 3),
-                  transparent: packed.bits(7, 1),
-                  delayTime: bytes[pos + 4],
-                  tci: bytes[pos + 6],
-                }
-                pos += 8
-                break
-              case 0xfe:
-                pos -= 12 // Comment extension fallthrough...
-              case 0xff:
-                pos -= 1 // Application extension fallthrough...
-              case 0x01:
-                pos += 15 // Plain Text extension fallthrough...
-              default: // Skip data sub-blocks
-                while (bytes[pos] !== 0x00) pos += bytes[pos] + 1
-                pos++
-            }
-            break
-          case 0x2c: {
-            // `New image frame at ${pos}`
-            const [x, y, w, h] = new Uint16Array(buffer.slice(pos + 1, pos + 9))
-            const frame = {
-              disposalMethod: gce.disposalMethod,
-              delayTime: gce.delayTime < 2 ? 100 : gce.delayTime * 10,
-              isKeyFrame: frames.length % keyFrameRate === 0 && !!frames.length,
-              isRendered: false,
-              number: frames.length + 1,
-              transparent: gce.transparent,
-              pos: { x, y },
-              size: { w, h },
-            }
-
-            // We try to detect transparency in first frame after drawing...
-            // But we assume transparency if using method 2 since the background
-            // could show through
-            if (frame.disposalMethod === 2) {
-              state.hasTransparency = true
-            }
-
-            // Skip local color table
-            const imageStart = pos
-            pos += colorTableSize(bytes[pos + 9]) + 11
-
-            // Skip data blocks
-            while (bytes[pos] !== 0x00) pos += bytes[pos] + 1
-            let imageBlocks = bytes.subarray(imageStart, ++pos)
-
-            // Use a Graphics Control Extension
-            if (typeof gce.pos !== 'undefined') {
-              imageBlocks = bytes
-                .subarray(gce.pos, gce.pos + 4) // Begin ext
-                .concat(new Uint8Array([0x00, 0x00])) // Zero out the delay time
-                .concat(bytes.subarray(gce.pos + 6, gce.pos + 8)) // End ext
-                .concat(imageBlocks)
-            }
-
-            const data = header.concat(gct).concat(imageBlocks).concat(trailer)
-            frame.blob = new Blob([data], { type: 'image/gif' })
-            frames.push(frame)
-            break
-          }
-          case 0x3b: // End of file
-            return frames
-          default:
-            return showError('Error: Could not decode GIF')
-        }
-      }
     }
 
     // Drawing to canvas
     // =================
 
-    function renderAndSave(frame) {
-      renderFrame(frame, context.render)
-      if (frame.isRendered || !frame.isKeyFrame) {
-        frame.isKeyFrame = true
-        return Promise.resolve()
-      }
-      return new Promise(function (resolve, reject) {
-        frame.putable = context.render.getImageData(
-          0,
-          0,
-          state.width,
-          state.height
-        )
-        frame.blob = null
-        frame.drawable = null
-        frame.isRendered = true
-        const c = (frame.canvas = document.createElement('canvas'))
-        ;[c.width, c.height] = [state.width, state.height]
-        c.getContext('2d', { willReadFrequently: true }).putImageData(
-          frame.putable,
-          0,
-          0
-        )
-        renderBar.set(frame.number / state.frames.length)
-        setTimeout(resolve, 0)
-      })
-    }
+    let decodeToken = 0
+    let animFrameId = null
+    let lastFrameAt = 0
+    let frameBusy = false
 
-    function renderFrame(frame, ctx) {
-      const [{ x, y }, { w, h }, method] = [
-        frame.pos,
-        frame.size,
-        frame.disposalMethod,
-      ]
-      const full = [0, 0, state.width, state.height]
-      const prevFrame = state.frames[frame.number - 2]
-
-      if (!prevFrame) {
-        ctx.clearRect(...full) // First frame, wipe the canvas clean
-      } else {
-        // Disposal method 0 or 1: draw image only
-        // Disposal method 2: draw image then erase portion just drawn
-        // Disposal method 3: draw image then revert to previous frame
-        const [{ x, y }, { w, h }, method] = [
-          prevFrame.pos,
-          prevFrame.size,
-          prevFrame.disposalMethod,
-        ]
-        if (method === 2) ctx.clearRect(x, y, w, h)
-        if (method === 3) ctx.putImageData(prevFrame.backup, 0, 0)
-      }
-
-      frame.backup = method === 3 ? ctx.getImageData(...full) : null
-      drawFrame(frame, ctx)
-
-      // Check first frame for transparency
-      if (!prevFrame && !state.hasTransparency && !state.firstFrameChecked) {
-        state.firstFrameChecked = true
-        const data = ctx.getImageData(0, 0, state.width, state.height).data
-        for (let i = 0, l = data.length; i < l; i += 4) {
-          if (data[i + 3] === 0) {
-            // Check alpha of each pixel in frame 0
-            state.hasTransparency = true
-            break
-          }
-        }
-      }
-    }
-
-    function drawFrame(frame, ctx) {
-      if (frame.drawable)
-        ctx.drawImage(frame.drawable, 0, 0, state.width, state.height)
-      else ctx.putImageData(frame.putable, 0, 0)
-    }
-
-    function showFrame(frameNumber) {
+    async function showFrame(frameNumber) {
       const lastFrame = state.frames.length - 1
       frameNumber = clamp(frameNumber, 0, lastFrame)
-      const frame = state.frames[(state.currentFrame = frameNumber)]
-      let fillX = (frameNumber / lastFrame) * state.barWidth - 2
-      dom.filler.css('left', Math.max(0, fillX))
+      state.currentFrame = frameNumber
 
-      // Draw current frame only if it's already rendered
-      if (frame.isRendered || state.debug.showRawFrames) {
-        if (state.hasTransparency) {
-          context.display.clearRect(0, 0, state.width, state.height)
-        }
-        return drawFrame(frame, context.display)
-      }
-
-      // Rendering not complete. Draw all frames since latest key frame as well
-      const first = Math.max(
-        0,
-        frameNumber - (frameNumber % state.keyFrameRate)
+      dom.filler.css(
+        'width',
+        (frameNumber / lastFrame) * dom.bar[0].offsetWidth
       )
-      for (let i = first; i <= frameNumber; i++) {
-        renderFrame(state.frames[i], context.display)
+
+      state.decoder.reset()
+      const token = ++decodeToken
+      let result
+      try {
+        result = await state.decoder.decode({ frameIndex: frameNumber })
+      } catch (e) {
+        // Decode was aborted by a newer showFrame call — ignore
+        // This can happen when scrubbing forward and backward
+        if (e.name === 'AbortError') return
+        throw e
       }
+      if (token !== decodeToken) return
+
+      const frame = state.frames[frameNumber]
+
+      if (!frame.delayTime) {
+        frame.delayTime = result.image.duration
+          ? result.image.duration / 1000
+          : 100
+      }
+
+      context.display.clearRect(0, 0, state.width, state.height)
+      context.display.drawImage(result.image, 0, 0)
     }
 
     // Toolbar: explode, download, and options
     // =======================================
 
-    function downloadZip() {
+    async function downloadZip() {
       if (dom.zipIcon.hasClass('fa-spin')) return false
       console.time('download-generate')
       dom.zipIcon.toggleClass('fa-download fa-spinner fa-spin')
-      downloadReady.then(() => {
-        let p = Promise.resolve()
-        if (!state.zipGenerated) {
-          p = state.frames
-            .map((frame) => () => {
-              return new Promise((resolve) => {
-                frame.canvas.toBlob(
-                  (blob) => {
-                    state.zipGen.file(`Frame ${frame.number}.png`, blob)
-                    frame.blob = blob
-                    resolve()
-                  },
-                  'image/png',
-                  1.0
-                )
-              })
-            })
-            .reduce(...chainPromises)
-        }
-        p.then(() => {
-          state.zipGen.generateAsync({ type: 'blob' }).then((blob) => {
-            saveAs(blob, 'gif-scrubber.zip')
-            dom.zipIcon.toggleClass('fa-download fa-spinner fa-spin')
-          })
-          state.zipGenerated = true
-          console.timeEnd('download-generate')
-        })
-      })
+      await downloadReady
+      if (state.zipGenerated) return
+      await renderAllFrames()
+      for (const frame of state.frames) {
+        const blob = await new Promise((resolve) =>
+          frame.canvas.toBlob(resolve, 'image/png', 1.0)
+        )
+        state.zipGen.file(`Frame ${frame.number}.png`, blob)
+      }
+      const blob = await state.zipGen.generateAsync({ type: 'blob' })
+      saveAs(blob, 'gif-scrubber.zip')
+      dom.zipIcon.toggleClass('fa-download fa-spinner fa-spin')
+      state.zipGenerated = true
+      console.timeEnd('download-generate')
     }
 
-    function toggleExplodeView() {
+    async function renderAllFrames() {
+      for (const frame of state.frames) {
+        if (frame.canvas) continue
+        const result = await state.decoder.decode({
+          frameIndex: frame.number - 1,
+        })
+        const c = document.createElement('canvas')
+        ;[c.width, c.height] = [state.width, state.height]
+        c.getContext('2d').drawImage(result.image, 0, 0)
+        frame.canvas = c
+      }
+    }
+
+    async function toggleExplodeView() {
       togglePlaying(false)
       dom.explodeView.toggleClass('displayed')
+      if (state.exploded) return
+      await renderAllFrames()
+      for (const frame of state.frames) dom.explodedFrames.append(frame.canvas)
+      state.exploded = true
     }
 
     function options() {
@@ -640,34 +492,36 @@ window.addEventListener(
       .on('dragover', (evt) => {
         evt.stopPropagation()
         evt.preventDefault()
-        evt.dataTransfer.dropEffect = 'copy'
+        evt.originalEvent.dataTransfer.dropEffect = 'copy'
       })
       .on('drop', (evt) => {
         evt.preventDefault()
         togglePlaying(false)
         const reader = new FileReader()
-        reader.onload = (e) => handleGIF(e.target.result)
-        reader.readAsArrayBuffer(evt.dataTransfer.files[0])
+        reader.onload = (e) => {
+          const buffer = e.target.result
+          const bytes = new Uint8Array(buffer.slice(0, 24))
+          const mime = detectMime(bytes)
+          if (mime) handleImage(buffer, mime)
+          else showError('Unsupported file format.')
+        }
+        reader.readAsArrayBuffer(evt.originalEvent.dataTransfer.files[0])
       })
 
     // Player controls
     // ===============
 
-    function updateScrub(e) {
+    async function updateScrub(e) {
       let mouseX = parseInt(e.pageX - dom.spacer[0].offsetLeft, 10)
       togglePlaying(false)
-      mouseX = clamp(mouseX, 0, state.barWidth - 1)
-      const frame = parseInt(
-        mouseX / state.barWidth / (1 / state.frames.length),
-        10
-      )
-      if (frame !== state.currentFrame) showFrame(frame)
+      const barWidth = dom.bar[0].offsetWidth
+      mouseX = clamp(mouseX, 0, barWidth - 1)
+      const frame = parseInt(mouseX / barWidth / (1 / state.frames.length), 10)
+      if (frame !== state.currentFrame) await showFrame(frame)
     }
 
-    async function advanceFrame(direction = 'auto') {
-      let frameNumber = state.currentFrame
-      if (direction === 'auto') frameNumber += state.speed > 0 ? 1 : -1
-      else frameNumber += direction
+    async function advanceFrame(direction) {
+      let frameNumber = state.currentFrame + direction
 
       const loopBackward = frameNumber < 0
       const loopForward = frameNumber >= state.frames.length
@@ -679,22 +533,54 @@ window.addEventListener(
         else return togglePlaying(false)
       }
 
-      showFrame(frameNumber)
+      await showFrame(frameNumber)
+      togglePlaying(false)
+    }
 
-      if (direction === 'auto') {
-        state.playTimeoutId = setTimeout(advanceFrame, state.frameDelay())
-      } else {
-        togglePlaying(false)
+    async function tick(now) {
+      if (!state.playing) return
+      if (frameBusy) {
+        animFrameId = requestAnimationFrame(tick)
+        return
       }
+
+      const elapsed = now - lastFrameAt
+      const delay = state.frameDelay()
+
+      if (elapsed >= delay) {
+        frameBusy = true
+        lastFrameAt += delay
+
+        let next = state.currentFrame + (state.speed > 0 ? 1 : -1)
+        const lastFrame = state.frames.length - 1
+
+        if (next < 0 || next > lastFrame) {
+          const loopAnim = await preference('loop-anim')
+          if (loopAnim) {
+            next = next < 0 ? lastFrame : 0
+          } else {
+            frameBusy = false
+            return togglePlaying(false)
+          }
+        }
+
+        await showFrame(next)
+        frameBusy = false
+      }
+
+      animFrameId = requestAnimationFrame(tick)
     }
 
     function togglePlaying(playing) {
       if (state.playing === playing) return
+      dom.pausePlayIcon.toggleClass('fa-play', !playing)
       dom.pausePlayIcon.toggleClass('fa-pause', playing)
       if ((state.playing = playing)) {
-        state.playTimeoutId = setTimeout(advanceFrame, state.frameDelay())
+        lastFrameAt = performance.now()
+        animFrameId = requestAnimationFrame(tick)
       } else {
-        clearTimeout(state.playTimeoutId)
+        cancelAnimationFrame(animFrameId)
+        animFrameId = null
       }
     }
 
@@ -708,24 +594,3 @@ window.addEventListener(
   },
   false
 )
-
-// Utilities
-// =========
-
-Uint8Array.prototype.concat = function (newArr) {
-  const result = new Uint8Array(this.length + newArr.length)
-  result.set(this)
-  result.set(newArr, this.length)
-  return result
-}
-
-Uint8Array.prototype.string = function () {
-  return this.reduce((prev, curr) => prev + String.fromCharCode(curr), '')
-}
-
-Number.prototype.bits = function (startBit, length) {
-  let string = this.toString(2)
-  while (string.length < 8) string = '0' + string // Zero pad
-  string = string.substring(startBit, startBit + (length || 1))
-  return parseInt(string, 2)
-}
